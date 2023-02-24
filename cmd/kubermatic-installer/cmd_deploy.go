@@ -71,6 +71,9 @@ type DeployOptions struct {
 	MigrateNginx               bool
 	MigrateOpenstackCSI        bool
 	MigrateLogrotate           bool
+
+	SkipCertManagerDeployment            bool
+	SkipNginxIngressControllerDeployment bool
 }
 
 func DeployCommand(logger *logrus.Logger, versions kubermaticversion.Versions) *cobra.Command {
@@ -124,6 +127,9 @@ func DeployCommand(logger *logrus.Logger, versions kubermaticversion.Versions) *
 	cmd.PersistentFlags().BoolVar(&opt.MigrateNginx, "migrate-upstream-nginx-ingress", false, "enable the migration procedure for nginx-ingress-controller (upgrade from v1.3.0+)")
 	cmd.PersistentFlags().BoolVar(&opt.MigrateOpenstackCSI, "migrate-openstack-csidrivers", false, "(kubermatic-seed only) enable the data migration of CSIDriver of openstack user-clusters")
 	cmd.PersistentFlags().BoolVar(&opt.MigrateLogrotate, "migrate-logrotate", false, "enable the data migration to delete the logrotate addon")
+
+	cmd.PersistentFlags().BoolVar(&opt.SkipCertManagerDeployment, "skip-cert-manager-deployment", false, "Skip cert-manager deployment")
+	cmd.PersistentFlags().BoolVar(&opt.SkipNginxIngressControllerDeployment, "skip-nginx-ingress-controller-deployment", false, "Skip nginx-ingress-controller deployment")
 
 	return cmd
 }
@@ -192,21 +198,23 @@ func DeployFunc(logger *logrus.Logger, versions kubermaticversion.Versions, opt 
 		}
 
 		deployOptions := stack.DeployOptions{
-			HelmClient:                         helmClient,
-			HelmValues:                         helmValues,
-			KubermaticConfiguration:            kubermaticConfig,
-			RawKubermaticConfiguration:         rawKubermaticConfig,
-			StorageClassProvider:               opt.StorageClass,
-			ForceHelmReleaseUpgrade:            opt.Force,
-			ChartsDirectory:                    opt.ChartsDirectory,
-			EnableCertManagerV2Migration:       opt.MigrateCertManager,
-			EnableCertManagerUpstreamMigration: opt.MigrateUpstreamCertManager,
-			EnableNginxIngressMigration:        opt.MigrateNginx,
-			EnableOpenstackCSIDriverMigration:  opt.MigrateOpenstackCSI,
-			EnableLogrotateMigration:           opt.MigrateLogrotate,
-			DisableTelemetry:                   opt.DisableTelemetry,
-			DisableDependencyUpdate:            opt.SkipDependencies,
-			Versions:                           versions,
+			HelmClient:                           helmClient,
+			HelmValues:                           helmValues,
+			KubermaticConfiguration:              kubermaticConfig,
+			RawKubermaticConfiguration:           rawKubermaticConfig,
+			StorageClassProvider:                 opt.StorageClass,
+			ForceHelmReleaseUpgrade:              opt.Force,
+			ChartsDirectory:                      opt.ChartsDirectory,
+			EnableCertManagerV2Migration:         opt.MigrateCertManager,
+			EnableCertManagerUpstreamMigration:   opt.MigrateUpstreamCertManager,
+			EnableNginxIngressMigration:          opt.MigrateNginx,
+			EnableOpenstackCSIDriverMigration:    opt.MigrateOpenstackCSI,
+			EnableLogrotateMigration:             opt.MigrateLogrotate,
+			SkipCertManagerDeployment:            opt.SkipCertManagerDeployment,
+			SkipNginxIngressControllerDeployment: opt.SkipNginxIngressControllerDeployment,
+			DisableTelemetry:                     opt.DisableTelemetry,
+			DisableDependencyUpdate:              opt.SkipDependencies,
+			Versions:                             versions,
 		}
 
 		// prepapre Kubernetes and Helm clients

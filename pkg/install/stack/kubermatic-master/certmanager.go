@@ -48,6 +48,11 @@ import (
 )
 
 func deployCertManager(ctx context.Context, logger *logrus.Entry, kubeClient ctrlruntimeclient.Client, helmClient helm.Client, opt stack.DeployOptions) error {
+	if opt.SkipCertManagerDeployment {
+		logger.Info("⏭️ Skipping cert-manager deployment.")
+		return nil
+	}
+
 	logger.Info("📦 Deploying cert-manager…")
 	sublogger := log.Prefix(logger, "   ")
 

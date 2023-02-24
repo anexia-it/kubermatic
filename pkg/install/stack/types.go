@@ -54,6 +54,9 @@ type DeployOptions struct {
 	EnableLogrotateMigration           bool
 	DisableTelemetry                   bool
 	DisableDependencyUpdate            bool
+
+	SkipCertManagerDeployment            bool
+	SkipNginxIngressControllerDeployment bool
 }
 
 type Stack interface {

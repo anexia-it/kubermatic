@@ -42,6 +42,11 @@ import (
 )
 
 func deployNginxIngressController(ctx context.Context, logger *logrus.Entry, kubeClient ctrlruntimeclient.Client, helmClient helm.Client, opt stack.DeployOptions) error {
+	if opt.SkipNginxIngressControllerDeployment {
+		logger.Info("⏭️ Skipping nginx-ingress-controller deployment.")
+		return nil
+	}
+
 	logger.Info("📦 Deploying nginx-ingress-controller…")
 	sublogger := log.Prefix(logger, "   ")
 
