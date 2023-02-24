@@ -56,6 +56,9 @@ type DeployOptions struct {
 	DisableTelemetry                   bool
 	DisableDependencyUpdate            bool
 
+	SkipCertManagerDeployment            bool
+	SkipNginxIngressControllerDeployment bool
+
 	MLASkipMinio             bool
 	MLASkipMinioLifecycleMgr bool
 	MLAForceSecrets          bool

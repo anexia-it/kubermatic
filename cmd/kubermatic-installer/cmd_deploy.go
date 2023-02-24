@@ -76,6 +76,9 @@ type DeployOptions struct {
 	MigrateUpstreamCertManager bool
 	MigrateNginx               bool
 
+	SkipCertManagerDeployment            bool
+	SkipNginxIngressControllerDeployment bool
+
 	MLASkipMinio             bool
 	MLASkipMinioLifecycleMgr bool
 	MLAForceMLASecrets       bool
@@ -139,6 +142,9 @@ func DeployCommand(logger *logrus.Logger, versions kubermaticversion.Versions) *
 	cmd.PersistentFlags().BoolVar(&opt.MLASkipMinioLifecycleMgr, "mla-skip-minio-lifecycle-mgr", false, "(UserCluster MLA) skip installation of userCluster MLA Minio Bucket Lifecycle Manager")
 	cmd.PersistentFlags().BoolVar(&opt.MLAForceMLASecrets, "mla-force-secrets", false, "(UserCluster MLA) force reinstallation of mla-secrets Helm chart")
 	cmd.PersistentFlags().BoolVar(&opt.MLAIncludeIap, "mla-include-iap", false, "(UserCluster MLA) Include Identity-Aware Proxy installation")
+
+	cmd.PersistentFlags().BoolVar(&opt.SkipCertManagerDeployment, "skip-cert-manager-deployment", false, "Skip cert-manager deployment")
+	cmd.PersistentFlags().BoolVar(&opt.SkipNginxIngressControllerDeployment, "skip-nginx-ingress-controller-deployment", false, "Skip nginx-ingress-controller deployment")
 
 	return cmd
 }
@@ -213,24 +219,26 @@ func DeployFunc(logger *logrus.Logger, versions kubermaticversion.Versions, opt 
 		}
 
 		deployOptions := stack.DeployOptions{
-			HelmClient:                         helmClient,
-			HelmValues:                         helmValues,
-			KubermaticConfiguration:            kubermaticConfig,
-			RawKubermaticConfiguration:         rawKubermaticConfig,
-			StorageClassProvider:               opt.StorageClass,
-			ForceHelmReleaseUpgrade:            opt.Force,
-			ChartsDirectory:                    opt.ChartsDirectory,
-			EnableCertManagerV2Migration:       opt.MigrateCertManager,
-			EnableCertManagerUpstreamMigration: opt.MigrateUpstreamCertManager,
-			EnableNginxIngressMigration:        opt.MigrateNginx,
-			DisableTelemetry:                   opt.DisableTelemetry,
-			DisableDependencyUpdate:            opt.SkipDependencies,
-			AllowEditionChange:                 opt.AllowEditionChange,
-			MLASkipMinio:                       opt.MLASkipMinio,
-			MLASkipMinioLifecycleMgr:           opt.MLASkipMinioLifecycleMgr,
-			MLAForceSecrets:                    opt.MLAForceMLASecrets,
-			MLAIncludeIap:                      opt.MLAIncludeIap,
-			Versions:                           versions,
+			HelmClient:                           helmClient,
+			HelmValues:                           helmValues,
+			KubermaticConfiguration:              kubermaticConfig,
+			RawKubermaticConfiguration:           rawKubermaticConfig,
+			StorageClassProvider:                 opt.StorageClass,
+			ForceHelmReleaseUpgrade:              opt.Force,
+			ChartsDirectory:                      opt.ChartsDirectory,
+			EnableCertManagerV2Migration:         opt.MigrateCertManager,
+			EnableCertManagerUpstreamMigration:   opt.MigrateUpstreamCertManager,
+			EnableNginxIngressMigration:          opt.MigrateNginx,
+			DisableTelemetry:                     opt.DisableTelemetry,
+			DisableDependencyUpdate:              opt.SkipDependencies,
+			AllowEditionChange:                   opt.AllowEditionChange,
+			SkipCertManagerDeployment:            opt.SkipCertManagerDeployment,
+			SkipNginxIngressControllerDeployment: opt.SkipNginxIngressControllerDeployment,
+			MLASkipMinio:                         opt.MLASkipMinio,
+			MLASkipMinioLifecycleMgr:             opt.MLASkipMinioLifecycleMgr,
+			MLAForceSecrets:                      opt.MLAForceMLASecrets,
+			MLAIncludeIap:                        opt.MLAIncludeIap,
+			Versions:                             versions,
 		}
 
 		// prepapre Kubernetes and Helm clients
