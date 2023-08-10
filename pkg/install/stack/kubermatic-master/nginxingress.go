@@ -24,6 +24,7 @@ import (
 
 	semverlib "github.com/Masterminds/semver/v3"
 	"github.com/sirupsen/logrus"
+	"k8s.io/utils/strings/slices"
 
 	"k8c.io/kubermatic/v2/pkg/features"
 	"k8c.io/kubermatic/v2/pkg/install/helm"
@@ -42,6 +43,11 @@ import (
 )
 
 func deployNginxIngressController(ctx context.Context, logger *logrus.Entry, kubeClient ctrlruntimeclient.Client, helmClient helm.Client, opt stack.DeployOptions) error {
+	if slices.Contains(opt.SkipCharts, "nginx-ingress-controller") {
+		logger.Info("⏭️ Skipping nginx-ingress-controller deployment.")
+		return nil
+	}
+
 	logger.Info("📦 Deploying nginx-ingress-controller…")
 	sublogger := log.Prefix(logger, "   ")
 

@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"k8s.io/utils/strings/slices"
 
 	kubermaticv1 "k8c.io/kubermatic/v2/pkg/apis/kubermatic/v1"
 	"k8c.io/kubermatic/v2/pkg/features"
@@ -200,6 +201,11 @@ func deployStorageClass(ctx context.Context, logger *logrus.Entry, kubeClient ct
 }
 
 func deployDex(ctx context.Context, logger *logrus.Entry, kubeClient ctrlruntimeclient.Client, helmClient helm.Client, opt stack.DeployOptions) error {
+	if slices.Contains(opt.SkipCharts, "dex") {
+		logger.Info("⏭️ Skipping dex deployment.")
+		return nil
+	}
+
 	logger.Info("📦 Deploying Dex…")
 	sublogger := log.Prefix(logger, "   ")
 
