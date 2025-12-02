@@ -454,8 +454,8 @@ scrape_configs:
     target_label: pod
 {{- end }}
 {{- end }}
-{{- with .CustomScrapingConfigs -}}
+{{ with .CustomScrapingConfigs }}
 
 {{ . }}
-{{- end }}
+{{ end }}
 `
