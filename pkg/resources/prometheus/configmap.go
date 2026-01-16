@@ -205,7 +205,7 @@ alerting:
 
 scrape_configs:
 {{- if not .TemplateData.KubermaticConfiguration.Spec.UserCluster.Monitoring.DisableDefaultScrapingConfigs }}
-#######################################################################
+
 # These rules will scrape pods running inside the seed cluster.
 
 # scrape the etcd pods
@@ -475,10 +475,8 @@ scrape_configs:
     target_label: pod
 {{- end }}
 {{- end }}
-{{- with .CustomScrapingConfigs -}}
-#######################################################################
-# custom scraping configurations
+{{ with .CustomScrapingConfigs }}
 
 {{ . }}
-{{- end }}
+{{ end }}
 `

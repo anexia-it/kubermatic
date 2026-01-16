@@ -325,8 +325,7 @@ metrics:
       scrape_interval: 5m
       scrape_timeout: 30s
 {{- with .CustomScrapeConfigs }}
-    #######################################################################
-    # custom scraping configurations
+
 {{ . | indent 4 }}
 {{- end }}
 
