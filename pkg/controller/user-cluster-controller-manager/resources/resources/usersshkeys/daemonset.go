@@ -62,7 +62,7 @@ func DaemonSetReconciler(versions kubermatic.Versions, imageRewriter registry.Im
 				{
 					Name:            daemonSetName,
 					ImagePullPolicy: corev1.PullAlways,
-					Image:           registry.Must(imageRewriter(fmt.Sprintf("%s/%s:%s", resources.RegistryQuay, dockerImage, versions.KubermaticContainerTag))),
+					Image:           registry.Must(imageRewriter(fmt.Sprintf("%s/%s:%s", resources.RegistryAnexia, dockerImage, versions.KubermaticContainerTag))),
 					Command:         []string{fmt.Sprintf("/usr/local/bin/%v", daemonSetName)},
 					VolumeMounts: []corev1.VolumeMount{
 						{
