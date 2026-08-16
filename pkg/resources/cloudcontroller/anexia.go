@@ -47,7 +47,7 @@ func anexiaDeploymentReconciler(data *resources.TemplateData) reconciling.NamedD
 			deployment.Spec.Template.Spec.Containers = []corev1.Container{
 				{
 					Name:  ccmContainerName,
-					Image: registry.Must(data.RewriteImage("anx-cr.io/anexia/anx-cloud-controller-manager:" + anexiaCCMVersion)),
+					Image: registry.Must(data.RewriteImage("anx-cr.io/anexia/anx-cloud-controller-manager:" + getAnexiaCCMVersion(data))),
 					Command: []string{
 						"/app/ccm",
 						"--cloud-provider=anexia",
@@ -115,4 +115,18 @@ func anexiaDeploymentReconciler(data *resources.TemplateData) reconciling.NamedD
 			return deployment, nil
 		}
 	}
+}
+
+func getAnexiaCCMVersion(data *resources.TemplateData) string {
+	version := anexiaCCMVersion
+
+	if config := data.KubermaticConfiguration(); config != nil && config.Spec.UserCluster.Anexia.CCMVersion != "" {
+		version = config.Spec.UserCluster.Anexia.CCMVersion
+	}
+
+	if cluster := data.Cluster(); cluster != nil && cluster.Spec.Cloud.Anexia != nil && cluster.Spec.Cloud.Anexia.CCMVersion != "" {
+		version = cluster.Spec.Cloud.Anexia.CCMVersion
+	}
+
+	return version
 }

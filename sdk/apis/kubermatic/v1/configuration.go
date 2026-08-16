@@ -293,6 +293,8 @@ type KubermaticUserClusterConfiguration struct {
 	OperatingSystemManager OperatingSystemManager `json:"operatingSystemManager,omitempty"`
 	// KubeLB configures the kubeLB component.
 	KubeLB KubeLBConfiguration `json:"kubelb,omitempty"`
+	// Anexia configures components used by Anexia user clusters.
+	Anexia AnexiaUserClusterConfiguration `json:"anexia,omitempty"`
 	// Kyverno configures the Kyverno policy engine settings at the global level.
 	// These settings apply to all user clusters unless overridden at seed or datacenter level.
 	// +optional
@@ -300,6 +302,14 @@ type KubermaticUserClusterConfiguration struct {
 	// AdmissionPlugins configures global admission plugin settings for all user clusters.
 	// +optional
 	AdmissionPlugins *AdmissionPluginsConfiguration `json:"admissionPlugins,omitempty"`
+}
+
+// AnexiaUserClusterConfiguration configures components used by Anexia user clusters.
+type AnexiaUserClusterConfiguration struct {
+	// CCMVersion configures the default Anexia cloud-controller-manager version.
+	// Individual clusters can override this value in their AnexiaCloudSpec.
+	// If empty, the version bundled with KKP is used.
+	CCMVersion string `json:"ccmVersion,omitempty"`
 }
 
 // KubermaticUserClusterMonitoringConfiguration can be used to fine-tune to in-cluster Prometheus.
