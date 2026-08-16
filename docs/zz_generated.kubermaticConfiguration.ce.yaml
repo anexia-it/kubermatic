@@ -535,6 +535,12 @@ spec:
       dockerTagSuffix: ""
     # AdmissionPlugins configures global admission plugin settings for all user clusters.
     admissionPlugins: null
+    # Anexia configures components used by Anexia user clusters.
+    anexia:
+      # CCMVersion configures the default Anexia cloud-controller-manager version.
+      # Individual clusters can override this value in their AnexiaCloudSpec.
+      # If empty, the version bundled with KKP is used.
+      ccmVersion: ""
     # APIServerReplicas configures the replica count for the API-Server deployment inside user clusters.
     apiserverReplicas: 2
     # Applications contains configuration for default Application settings.

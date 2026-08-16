@@ -281,3 +281,44 @@ func TestValidateMirrorImages(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateAnexiaCCMVersion(t *testing.T) {
+	tests := []struct {
+		name    string
+		version string
+		valid   bool
+	}{
+		{name: "empty", valid: true},
+		{name: "semantic version", version: "1.5.9", valid: true},
+		{name: "version with prefix", version: "v1.5.9", valid: true},
+		{name: "invalid slash", version: "1.5/9", valid: false},
+		{name: "invalid colon", version: "1.5:9", valid: false},
+		{name: "invalid whitespace", version: "1.5.9 latest", valid: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			version := semver.NewSemverOrDie("v1.31.0")
+			spec := &kubermaticv1.KubermaticConfigurationSpec{
+				Versions: kubermaticv1.KubermaticVersioningConfiguration{
+					Default:  version,
+					Versions: []semver.Semver{*version},
+				},
+			}
+			spec.UserCluster.Anexia.CCMVersion = tt.version
+
+			err := ValidateKubermaticConfigurationSpec(spec).ToAggregate()
+			if (err == nil) != tt.valid {
+				t.Fatalf("expected valid=%t, got error %v", tt.valid, err)
+			}
+
+			clusterErr := validateAnexiaCloudSpec(&kubermaticv1.AnexiaCloudSpec{
+				Token:      "token",
+				CCMVersion: tt.version,
+			})
+			if (clusterErr == nil) != tt.valid {
+				t.Fatalf("expected cluster valid=%t, got error %v", tt.valid, clusterErr)
+			}
+		})
+	}
+}

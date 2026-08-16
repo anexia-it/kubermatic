@@ -1646,6 +1646,10 @@ type AnexiaCloudSpec struct {
 
 	// Token is used to authenticate with the Anexia API.
 	Token string `json:"token,omitempty"`
+
+	// CCMVersion overrides the Anexia cloud-controller-manager version for this cluster.
+	// If empty, the version configured in the KubermaticConfiguration is used.
+	CCMVersion string `json:"ccmVersion,omitempty"`
 }
 
 // NutanixCSIConfig contains credentials and the endpoint for the Nutanix Prism Element to which the CSI driver connects.

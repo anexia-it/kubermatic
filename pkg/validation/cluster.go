@@ -1094,6 +1094,10 @@ func validateAlibabaCloudSpec(spec *kubermaticv1.AlibabaCloudSpec) error {
 }
 
 func validateAnexiaCloudSpec(spec *kubermaticv1.AnexiaCloudSpec) error {
+	if err := validateImageTag(spec.CCMVersion); err != nil {
+		return fmt.Errorf("invalid CCM version: %w", err)
+	}
+
 	if spec.Token == "" {
 		if spec.CredentialsReference == nil {
 			return errors.New("no token or credentials reference specified")

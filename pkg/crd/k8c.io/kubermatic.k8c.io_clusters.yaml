@@ -509,6 +509,11 @@ spec:
                     anexia:
                       description: Anexia defines the configuration data of the Anexia.
                       properties:
+                        ccmVersion:
+                          description: |-
+                            CCMVersion overrides the Anexia cloud-controller-manager version for this cluster.
+                            If empty, the version configured in the KubermaticConfiguration is used.
+                          type: string
                         credentialsReference:
                           description: |-
                             GlobalObjectKeySelector is needed as we can not use v1.SecretKeySelector

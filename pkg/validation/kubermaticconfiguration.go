@@ -35,6 +35,10 @@ import (
 func ValidateKubermaticConfigurationSpec(spec *kubermaticv1.KubermaticConfigurationSpec) field.ErrorList {
 	allErrs := field.ErrorList{}
 
+	if err := validateImageTag(spec.UserCluster.Anexia.CCMVersion); err != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "userCluster", "anexia", "ccmVersion"), spec.UserCluster.Anexia.CCMVersion, err.Error()))
+	}
+
 	// Validate the MirrorImages field
 	if err := ValidateMirrorImages(spec.MirrorImages); err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "mirrorImages"), spec.MirrorImages, err.Error()))
@@ -46,6 +50,23 @@ func ValidateKubermaticConfigurationSpec(spec *kubermaticv1.KubermaticConfigurat
 	}
 
 	return allErrs
+}
+
+func validateImageTag(tag string) error {
+	if tag == "" {
+		return nil
+	}
+
+	image, err := reference.ParseNormalizedNamed("registry.example.com/image")
+	if err != nil {
+		return err
+	}
+
+	if _, err := reference.WithTag(image, tag); err != nil {
+		return fmt.Errorf("invalid image tag %q: %w", tag, err)
+	}
+
+	return nil
 }
 
 func ValidateKubermaticVersioningConfiguration(config kubermaticv1.KubermaticVersioningConfiguration, parentFieldPath *field.Path) field.ErrorList {

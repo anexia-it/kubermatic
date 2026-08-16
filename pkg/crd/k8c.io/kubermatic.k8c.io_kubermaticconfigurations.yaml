@@ -3026,6 +3026,16 @@ spec:
                               type: boolean
                           type: object
                       type: object
+                    anexia:
+                      description: Anexia configures components used by Anexia user clusters.
+                      properties:
+                        ccmVersion:
+                          description: |-
+                            CCMVersion configures the default Anexia cloud-controller-manager version.
+                            Individual clusters can override this value in their AnexiaCloudSpec.
+                            If empty, the version bundled with KKP is used.
+                          type: string
+                      type: object
                     apiserverReplicas:
                       description: APIServerReplicas configures the replica count for the API-Server deployment inside user clusters.
                       format: int32
