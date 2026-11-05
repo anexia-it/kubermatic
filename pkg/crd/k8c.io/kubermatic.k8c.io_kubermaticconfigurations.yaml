@@ -671,9 +671,61 @@ spec:
                         are managed by kubermatic-operator, instead of Ingress.
                       properties:
                         className:
-                          default: kubermatic-envoy-gateway
                           description: ClassName is the GatewayClass to use.
                           type: string
+                        externalGateway:
+                          description: |-
+                            ExternalGateway references a user-managed Gateway. When configured,
+                            kubermatic-operator does not create the default Gateway and only points
+                            managed HTTPRoutes at this Gateway. The reference must not resolve to an
+                            operator-managed Gateway. A Gateway with a KubermaticConfiguration controller
+                            ownerReference is considered operator-managed; remove stale ownerReferences
+                            before reusing a former managed Gateway as external. ClassName,
+                            InfrastructureAnnotations, TLS, and spec.ingress.certificateIssuer must
+                            not be set when this field is set.
+                          properties:
+                            name:
+                              description: Name is the name of the Gateway.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: Namespace is the namespace of the Gateway. If unset, the KKP namespace is used.
+                              maxLength: 63
+                              pattern: ^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          required:
+                            - name
+                          type: object
+                        infrastructureAnnotations:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            InfrastructureAnnotations configures Gateway.spec.infrastructure.annotations on the
+                            operator-managed Gateway so the Gateway implementation can propagate them to the
+                            generated infrastructure resources.
+                          type: object
+                        tls:
+                          description: TLS configures TLS for the operator-managed default Gateway.
+                          properties:
+                            secretRef:
+                              description: |-
+                                SecretRef references an existing TLS Secret that should be used by the
+                                default HTTPS listener. When hostname-specific HTTPS listeners are synced
+                                for watched HTTPRoutes, the referenced certificate must cover all served
+                                hostnames, for example via a wildcard or SAN certificate.
+                              properties:
+                                name:
+                                  description: Name is the name of the TLS Secret.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace is the namespace of the TLS Secret. If unset, the Gateway namespace is used.
+                                    Cross-namespace references require a Gateway API ReferenceGrant in the target namespace.
+                                  type: string
+                              type: object
+                          type: object
                       type: object
                     namespaceOverride:
                       description: NamespaceOverride need to be set if a different ingress-controller is used than the KKP default one.
@@ -3026,6 +3078,16 @@ spec:
                               type: boolean
                           type: object
                       type: object
+                    anexia:
+                      description: Anexia configures components used by Anexia user clusters.
+                      properties:
+                        ccmVersion:
+                          description: |-
+                            CCMVersion configures the default Anexia cloud-controller-manager version.
+                            Individual clusters can override this value in their AnexiaCloudSpec.
+                            If empty, the version bundled with KKP is used.
+                          type: string
+                      type: object
                     apiserverReplicas:
                       description: APIServerReplicas configures the replica count for the API-Server deployment inside user clusters.
                       format: int32
@@ -3072,6 +3134,12 @@ spec:
                     kubelb:
                       description: KubeLB configures the kubeLB component.
                       properties:
+                        disableGatewayAPIProtection:
+                          description: |-
+                            DisableGatewayAPIProtection disables, for all user clusters, the policy that reserves the Gateway API
+                            CRDs for the kubeLB CCM, and stops KKP from removing the upstream Gateway API safe-upgrades policy.
+                            Datacenters and clusters cannot re-enable it.
+                          type: boolean
                         imageRepository:
                           description: |-
                             ImageRepository is used to override the KubeLB image repository.

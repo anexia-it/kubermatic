@@ -316,8 +316,20 @@ type KubeLB struct {
 	UseLoadBalancerClass *bool `json:"useLoadBalancerClass,omitempty"`
 	// EnableGatewayAPI is used to enable Gateway API for KubeLB. Once enabled, KubeLB installs the Gateway API CRDs in the user cluster.
 	EnableGatewayAPI *bool `json:"enableGatewayAPI,omitempty"`
+	// DisableGatewayAPIProtection disables the policy that reserves the Gateway API CRDs for the kubeLB CCM,
+	// and stops KKP from removing the upstream Gateway API safe-upgrades policy. Protection is also off when
+	// the KubermaticConfiguration or the datacenter disables it.
+	DisableGatewayAPIProtection bool `json:"disableGatewayAPIProtection,omitempty"`
 	// ExtraArgs are additional arbitrary flags to pass to the kubeLB CCM for the user cluster.
 	ExtraArgs map[string]string `json:"extraArgs,omitempty"`
+}
+
+// KubeLBStatus is the observed state of the kubeLB integration.
+type KubeLBStatus struct {
+	// GatewayAPIProtected reports whether the policy that reserves the Gateway API CRDs for the kubeLB CCM
+	// is installed. No omitempty, so false stays visible.
+	// +optional
+	GatewayAPIProtected bool `json:"gatewayAPIProtected"`
 }
 
 func (c ClusterSpec) IsKubeLBEnabled() bool {
@@ -467,6 +479,20 @@ func (c ClusterSpec) IsClusterBackupEnabled() bool {
 type KyvernoSettings struct {
 	// Controls whether Kyverno is deployed or not.
 	Enabled bool `json:"enabled"`
+	// Optional: AdmissionController configures the Kyverno admission controller.
+	AdmissionController *KyvernoControllerSettings `json:"admissionController,omitempty"`
+	// Optional: BackgroundController configures the Kyverno background controller.
+	BackgroundController *KyvernoControllerSettings `json:"backgroundController,omitempty"`
+	// Optional: CleanupController configures the Kyverno cleanup controller.
+	CleanupController *KyvernoControllerSettings `json:"cleanupController,omitempty"`
+	// Optional: ReportsController configures the Kyverno reports controller.
+	ReportsController *KyvernoControllerSettings `json:"reportsController,omitempty"`
+}
+
+// KyvernoControllerSettings configures resource requirements for a Kyverno controller.
+type KyvernoControllerSettings struct {
+	// Optional: Resources is the resource requirements for the Kyverno controller.
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 func (c ClusterSpec) IsKyvernoEnabled() bool {
@@ -559,6 +585,7 @@ const (
 	ClusterConditionDefaultApplicationInstallationsControllerCreatedSuccessfully ClusterConditionType = "DefaultApplicationsCreatedSuccessfully"
 	ClusterConditionOperatingSystemManagerMigratorControllerReconcilingSuccess   ClusterConditionType = "OperatingSystemManagerMigratorControllerReconciledSuccessfully"
 	ClusterConditionKubeLBControllerReconcilingSuccess                           ClusterConditionType = "KubeLBControllerReconciledSuccessfully"
+	ClusterConditionKubeLBGatewayAPIProtectionReconcilingSuccess                 ClusterConditionType = "KubeLBGatewayAPIProtectionReconciledSuccessfully"
 	ClusterConditionCNIControllerReconcilingSuccess                              ClusterConditionType = "CNIControllerReconciledSuccessfully"
 	ClusterConditionMLAControllerReconcilingSuccess                              ClusterConditionType = "MLAControllerReconciledSuccessfully"
 	ClusterConditionEncryptionControllerReconcilingSuccess                       ClusterConditionType = "EncryptionControllerReconciledSuccessfully"
@@ -659,6 +686,10 @@ type ClusterStatus struct {
 	// of the cluster control plane and worker nodes.
 	// +optional
 	Versions ClusterVersionsStatus `json:"versions,omitempty"`
+
+	// KubeLB contains the observed state of the kubeLB integration.
+	// +optional
+	KubeLB *KubeLBStatus `json:"kubelb,omitempty"`
 
 	// Deprecated: UserName contains the name of the owner of this cluster.
 	// This field is not actively used and will be removed in the future.
@@ -1646,6 +1677,10 @@ type AnexiaCloudSpec struct {
 
 	// Token is used to authenticate with the Anexia API.
 	Token string `json:"token,omitempty"`
+
+	// CCMVersion overrides the Anexia cloud-controller-manager version for this cluster.
+	// If empty, the version configured in the KubermaticConfiguration is used.
+	CCMVersion string `json:"ccmVersion,omitempty"`
 }
 
 // NutanixCSIConfig contains credentials and the endpoint for the Nutanix Prism Element to which the CSI driver connects.

@@ -26,14 +26,20 @@ import (
 	"github.com/distribution/reference"
 
 	kubermaticv1 "k8c.io/kubermatic/sdk/v2/apis/kubermatic/v1"
+	"k8c.io/kubermatic/v2/pkg/defaulting"
 	"k8c.io/kubermatic/v2/pkg/version"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 func ValidateKubermaticConfigurationSpec(spec *kubermaticv1.KubermaticConfigurationSpec) field.ErrorList {
 	allErrs := field.ErrorList{}
+
+	if err := validateImageTag(spec.UserCluster.Anexia.CCMVersion); err != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "userCluster", "anexia", "ccmVersion"), spec.UserCluster.Anexia.CCMVersion, err.Error()))
+	}
 
 	// Validate the MirrorImages field
 	if err := ValidateMirrorImages(spec.MirrorImages); err != nil {
@@ -45,7 +51,91 @@ func ValidateKubermaticConfigurationSpec(spec *kubermaticv1.KubermaticConfigurat
 		allErrs = append(allErrs, errs...)
 	}
 
+	allErrs = append(allErrs, ValidateExternalGatewayConfiguration(spec)...)
+	allErrs = append(allErrs, validateGatewayTLSConfiguration(spec)...)
+
 	return allErrs
+}
+
+// ValidateExternalGatewayConfiguration validates spec.ingress.gateway.externalGateway.
+func ValidateExternalGatewayConfiguration(spec *kubermaticv1.KubermaticConfigurationSpec) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	gateway := spec.Ingress.Gateway
+	if gateway == nil || gateway.ExternalGateway == nil {
+		return allErrs
+	}
+
+	externalGatewayPath := field.NewPath("spec", "ingress", "gateway", "externalGateway")
+	if gateway.ExternalGateway.Name == "" {
+		allErrs = append(allErrs, field.Required(externalGatewayPath.Child("name"), "must be set when gateway.externalGateway is configured"))
+	} else if errs := k8svalidation.IsDNS1123Subdomain(gateway.ExternalGateway.Name); len(errs) > 0 {
+		allErrs = append(allErrs, field.Invalid(externalGatewayPath.Child("name"), gateway.ExternalGateway.Name, strings.Join(errs, "; ")))
+	}
+
+	if gateway.ExternalGateway.Namespace != "" {
+		if errs := k8svalidation.IsDNS1123Label(gateway.ExternalGateway.Namespace); len(errs) > 0 {
+			allErrs = append(allErrs, field.Invalid(externalGatewayPath.Child("namespace"), gateway.ExternalGateway.Namespace, strings.Join(errs, "; ")))
+		}
+	}
+
+	gatewayPath := field.NewPath("spec", "ingress", "gateway")
+	externalGatewayConflictMessage := "cannot be set together with spec.ingress.gateway.externalGateway"
+	// gateway.ClassName == DefaultGatewayClassName is accepted because the
+	// KubermaticConfiguration CRD previously set it as a default. Existing
+	// objects therefore carry this value even when the user has switched to
+	// externalGateway; defaulting clears it before reconciliation runs.
+	if gateway.ClassName != "" && gateway.ClassName != defaulting.DefaultGatewayClassName {
+		allErrs = append(allErrs, field.Forbidden(gatewayPath.Child("className"), externalGatewayConflictMessage))
+	}
+	if len(gateway.InfrastructureAnnotations) > 0 {
+		allErrs = append(allErrs, field.Forbidden(gatewayPath.Child("infrastructureAnnotations"), externalGatewayConflictMessage))
+	}
+	if gateway.TLS != nil {
+		allErrs = append(allErrs, field.Forbidden(gatewayPath.Child("tls"), externalGatewayConflictMessage))
+	}
+	if spec.Ingress.CertificateIssuer.Name != "" {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "ingress", "certificateIssuer"), externalGatewayConflictMessage))
+	}
+
+	return allErrs
+}
+
+func validateGatewayTLSConfiguration(spec *kubermaticv1.KubermaticConfigurationSpec) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	gateway := spec.Ingress.Gateway
+	if gateway == nil || gateway.UsesExternalGateway() || gateway.TLS == nil || gateway.TLS.SecretRef == nil {
+		return allErrs
+	}
+
+	secretRefPath := field.NewPath("spec", "ingress", "gateway", "tls", "secretRef")
+	if gateway.TLS.SecretRef.Name == "" {
+		allErrs = append(allErrs, field.Required(secretRefPath.Child("name"), "must be set when gateway.tls.secretRef is configured"))
+	}
+
+	if spec.Ingress.CertificateIssuer.Name != "" {
+		allErrs = append(allErrs, field.Forbidden(secretRefPath, "cannot be set together with spec.ingress.certificateIssuer"))
+	}
+
+	return allErrs
+}
+
+func validateImageTag(tag string) error {
+	if tag == "" {
+		return nil
+	}
+
+	image, err := reference.ParseNormalizedNamed("registry.example.com/image")
+	if err != nil {
+		return err
+	}
+
+	if _, err := reference.WithTag(image, tag); err != nil {
+		return fmt.Errorf("invalid image tag %q: %w", tag, err)
+	}
+
+	return nil
 }
 
 func ValidateKubermaticVersioningConfiguration(config kubermaticv1.KubermaticVersioningConfiguration, parentFieldPath *field.Path) field.ErrorList {

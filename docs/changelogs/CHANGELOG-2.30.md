@@ -1,6 +1,330 @@
 # Kubermatic 2.30
 
 - [v2.30.0](#v2300)
+- [v2.30.1](#v2301)
+- [v2.30.2](#v2302)
+- [v2.30.3](#v2303)
+- [v2.30.4](#v2304)
+- [v2.30.5](#v2305)
+- [v2.30.6](#v2306)
+- [v2.30.7](#v2307)
+- [v2.30.8](#v2308)
+- [v2.30.9](#v2309)
+
+## v2.30.9
+
+**GitHub release: [v2.30.9](https://github.com/kubermatic/kubermatic/releases/tag/v2.30.9)**
+
+### Bugfixes
+
+- Fix the KubeVirt cluster isolation NetworkPolicy (namespaced mode with `networkPolicy.mode: deny`) allowing egress to all ports on the configured DNS nameservers. Egress to the nameservers is now restricted to 53/TCP and 53/UDP, and existing policies are updated automatically ([#16757](https://github.com/kubermatic/kubermatic/pull/16757))
+
+### Dashboard and API
+
+#### Bugfixes
+
+- Redirect to the project list when a project URL carries a missing, invalid or inaccessible project ID instead of showing an empty project ([#8396](https://github.com/kubermatic/dashboard/pull/8396))
+
+## v2.30.8
+
+**GitHub release: [v2.30.8](https://github.com/kubermatic/kubermatic/releases/tag/v2.30.8)**
+
+### Breaking Changes
+
+This release contains changes that require additional attention, please read the following items carefully.
+
+- The `cluster` label of `kubermatic_addon_*` metrics now carries the full cluster name. action required: update custom dashboards or alerts that use the truncated value ([#16509](https://github.com/kubermatic/kubermatic/pull/16509))
+- Update KubeOne to v1.13.7, which supports Kubernetes 1.33 to 1.35. action required: upgrade KubeOne clusters on Kubernetes 1.32 to 1.33 before KKP can manage them ([#16590](https://github.com/kubermatic/kubermatic/pull/16590))
+- Remove the leftover `external-admin-user` ServiceAccount and its ClusterRoleBinding from user clusters created before v2.30. Replace it before upgrading if you use it ([#16612](https://github.com/kubermatic/kubermatic/pull/16612))
+
+### API Changes
+
+- Reserve the Gateway API CRDs for the KubeLB CCM to prevent kubelb-ccm crashes caused by incompatible Gateway API CRDs. Add `disableGatewayAPIProtection` to the KubermaticConfiguration, Datacenter and Cluster KubeLB settings to disable it ([#16674](https://github.com/kubermatic/kubermatic/pull/16674))
+
+### Supported Kubernetes Versions
+
+- Add support for k8s patch releases v1.35.9/v1.34.12 and set the default version to v1.34.12 ([#16549](https://github.com/kubermatic/kubermatic/pull/16549))
+
+#### Supported Versions
+
+- v1.35.9
+- v1.34.12
+
+### New Features
+
+- Add CPU and memory usage alerts per node and per cluster ([#16540](https://github.com/kubermatic/kubermatic/pull/16540))
+- Propagate project-level KubeLB defaults to existing Tenants ([#16474](https://github.com/kubermatic/kubermatic/pull/16474))
+
+### Bugfixes
+
+- Include the flatcar-linux-update-operator image in `kubermatic-installer mirror-images` ([#16607](https://github.com/kubermatic/kubermatic/pull/16607))
+- Fix Flatcar node auto-upgrades by updating flatcar-linux-update-operator to v0.10.0 ([#16609](https://github.com/kubermatic/kubermatic/pull/16609))
+- Show failed KubeOne job errors in the ExternalCluster status ([#16599](https://github.com/kubermatic/kubermatic/pull/16599))
+- Fix the KubeOne cluster upgrade status message growing with every reconcile ([#16604](https://github.com/kubermatic/kubermatic/pull/16604))
+- Fix policy bindings staying active after Kyverno is disabled ([#16527](https://github.com/kubermatic/kubermatic/pull/16527))
+- Fix PolicyBindings staying inactive when Kyverno policies contain server-defaulted fields ([#16483](https://github.com/kubermatic/kubermatic/pull/16483))
+
+### Updates
+
+- Update machine-controller to [v1.65.8](https://github.com/kubermatic/machine-controller/releases/tag/v1.65.8) and operating-system-manager to [v1.10.10](https://github.com/kubermatic/operating-system-manager/releases/tag/v1.10.10), fixing AWS Flatcar node initialization ([#16682](https://github.com/kubermatic/kubermatic/pull/16682), [#16523](https://github.com/kubermatic/kubermatic/pull/16523))
+- Add Cilium v1.17.18/v1.18.14 and set the default Cilium version to v1.18.14 ([#16675](https://github.com/kubermatic/kubermatic/pull/16675))
+- Update Canal to v3.29.7/v3.30.7/v3.31.7 ([#16672](https://github.com/kubermatic/kubermatic/pull/16672))
+- Update Envoy Gateway to v1.6.7 and Envoy proxy to v1.36.6 ([#16638](https://github.com/kubermatic/kubermatic/pull/16638))
+- Update the helm-exporter chart to 1.3.0 ([#16637](https://github.com/kubermatic/kubermatic/pull/16637))
+- Update the user-cluster MLA consul chart to 1.9.11 ([#16636](https://github.com/kubermatic/kubermatic/pull/16636))
+- Update the seed logging Loki chart to 5.48.0 ([#16640](https://github.com/kubermatic/kubermatic/pull/16640))
+- Pull MinIO images and charts from the Kubermatic mirror registry ([#16516](https://github.com/kubermatic/kubermatic/pull/16516), [#16486](https://github.com/kubermatic/kubermatic/pull/16486))
+
+### Dashboard and API
+
+#### Cloud Providers
+
+##### Azure
+
+- Add support for Azure VMs with securityProfile TrustedLaunch ([#8312](https://github.com/kubermatic/dashboard/pull/8312))
+
+##### KubeVirt
+
+- Show KubeVirt instance type memory in binary units ([#8316](https://github.com/kubermatic/dashboard/pull/8316))
+
+#### Bugfixes
+
+- Allow cluster backup durations longer than 99 hours ([#8356](https://github.com/kubermatic/dashboard/pull/8356))
+- Fix empty rows in the admin static labels form ([#8326](https://github.com/kubermatic/dashboard/pull/8326))
+
+## v2.30.7
+
+**GitHub release: [v2.30.7](https://github.com/kubermatic/kubermatic/releases/tag/v2.30.7)**
+
+### Supported Kubernetes Versions
+
+- Add support for k8s patch releases v1.35.8/v1.34.11 and set the default Kubernetes version to v1.34.11 ([#16300](https://github.com/kubermatic/kubermatic/pull/16300))
+
+#### Supported Versions
+
+- v1.35.8
+- v1.34.11
+
+### Cloud Providers
+
+#### Azure
+
+- Update the Azure cloud-controller-manager, cloud-node-manager, and the Azure Disk and Azure File CSI drivers to their latest upstream versions per supported Kubernetes minor. The controller-manager and node-manager images now come from the maintained mcr.microsoft.com/oss/v2 registry path (the previous /oss path was frozen at v1.34.3), clearing the base-image CVEs those stale images carried. Kubernetes 1.35 clusters now receive matching 1.35 controller-manager and node-manager images instead of 1.34 ones ([#16216](https://github.com/kubermatic/kubermatic/pull/16216))
+
+#### OpenStack
+
+- Update OpenStack Cinder CSI sidecar images (csi-attacher v4.12.0, csi-snapshotter v8.6.0, livenessprobe v2.19.0, csi-node-driver-registrar v2.17.0) to address known CVEs ([#16328](https://github.com/kubermatic/kubermatic/pull/16328))
+
+### Bugfixes
+
+- Migrate the user cluster MLA monitoring agent from the end-of-life grafana/agent v0.29.0 image to grafana/alloy v1.19.2 ([#16334](https://github.com/kubermatic/kubermatic/pull/16334))
+- Fix hardcoded datasource references in the mla-components Grafana dashboard by using a `$datasource` variable, and drop the unused Loki datasource ([#16313](https://github.com/kubermatic/kubermatic/pull/16313))
+- The Cluster Autoscaler application now grants the read access to resource.k8s.io that cluster-autoscaler 1.35 and newer require ([#16251](https://github.com/kubermatic/kubermatic/pull/16251))
+- Kubermatic-installer now passes --force-conflicts to Helm 4 only for releases that Helm applies server-side, fixing deploy failures on releases that were originally installed with Helm 3 ([#16210](https://github.com/kubermatic/kubermatic/pull/16210))
+
+### Updates
+
+- Update machine-controller to [v1.65.7](https://github.com/kubermatic/machine-controller/releases/tag/v1.65.7) and operating-system-manager to [v1.10.9](https://github.com/kubermatic/operating-system-manager/releases/tag/v1.10.9) ([#16348](https://github.com/kubermatic/kubermatic/pull/16348))
+- Update machine-controller to [v1.65.6](https://github.com/kubermatic/machine-controller/releases/tag/v1.65.6) ([#16277](https://github.com/kubermatic/kubermatic/pull/16277))
+- Update operating-system-manager to [v1.10.8](https://github.com/kubermatic/operating-system-manager/releases/tag/v1.10.8) ([#16283](https://github.com/kubermatic/kubermatic/pull/16283))
+- Add KubeLB CCM v1.5.0 support with updated permissions, CRDs and tenant proxy configuration ([#16336](https://github.com/kubermatic/kubermatic/pull/16336))
+- Update the metering version to v1.4.1, adding persistent storage usage to the JSON cluster report ([#16270](https://github.com/kubermatic/kubermatic/pull/16270))
+- Update the utility container image to 2.10.0 across all charts and controllers ([#16340](https://github.com/kubermatic/kubermatic/pull/16340))
+- Update util image version to 2.8.1 ([#16259](https://github.com/kubermatic/kubermatic/pull/16259))
+- Update the d3fk/s3cmd image to a current digest built on Alpine 3.24, resolving 62 CVEs inherited from the previously used end-of-life Alpine 3.17 base ([#16194](https://github.com/kubermatic/kubermatic/pull/16194))
+- Update Go version to v1.25.14 ([#16285](https://github.com/kubermatic/kubermatic/pull/16285))
+
+### Dashboard and API
+
+#### Bugfixes
+
+- Hide cluster backup options in Community Edition, where the feature is not supported ([#8240](https://github.com/kubermatic/dashboard/pull/8240))
+
+#### Updates
+
+- Update web-terminal image version to v1.12.1 ([#8275](https://github.com/kubermatic/dashboard/pull/8275))
+- Update chrome-headless to v1.9.4 and Go to v1.25.14 ([#8271](https://github.com/kubermatic/dashboard/pull/8271))
+
+## v2.30.6
+
+**GitHub release: [v2.30.6](https://github.com/kubermatic/kubermatic/releases/tag/v2.30.6)**
+
+### New Features
+
+- The KubeVirt node defaults shown in the Custom Configuration path have been raised: primary disk 10G -> 25G, memory 2000 MB -> 4000 MB. CPU default is unchanged at 2 ([#8182](https://github.com/kubermatic/dashboard/pull/8182))
+
+### Design
+
+- Hide KubeVirt instance type tabs that have no options ([#8196](https://github.com/kubermatic/dashboard/pull/8196))
+
+### Bugfixes
+
+- Fix a bug where multiple GroupProjectBindings with the same group and project could be created. The admission webhook now rejects duplicate bindings at creation time and prevents  an existing binding from being updated into a conflicting group/project pair ([#16162](https://github.com/kubermatic/kubermatic/pull/16162))
+- Fix nodeport-proxy-envoy Prometheus annotations to include the standard `prometheus.io/path` metrics path annotation ([#16092](https://github.com/kubermatic/kubermatic/pull/16092))
+- Fix the kubevirt-network-controller emitting spurious "invalid NetworkPolicy" warning events and potentially panicking when reconciling cluster-isolation NetworkPolicies in default-deny mode before the cluster's apiserver address or DNS configuration were available ([#16074](https://github.com/kubermatic/kubermatic/pull/16074))
+- Fix UserProjectBindings being deleted before their User logs in for the first time ([#16131](https://github.com/kubermatic/kubermatic/pull/16131))
+- Kubermatic-installer now enables server-side apply with conflict forcing when running with Helm 4, fixing `deploy` failures caused by field-ownership conflicts (for example on the dockercfg Secret). With Helm 4 the deprecated `--atomic` flag is replaced by `--rollback-on-failure` ([#16138](https://github.com/kubermatic/kubermatic/pull/16138))
+- Add improvements for the handling of Kyverno PolicyBindings and generated Kyverno resources when PolicyTemplates are deleted, Kyverno is disabled, or clusters are deleted ([#16034](https://github.com/kubermatic/kubermatic/pull/16034))
+- Fix KubeLB option precedence so enforced datacenters always show the option regardless of the enabled flag ([#7999](https://github.com/kubermatic/dashboard/pull/7999))
+- Fix KubeVirt instancetype/preference dropdowns failing on KubeVirt 1.6.x+ infra clusters by listing via the v1beta1 API (v1alpha1 fallback retained for older clusters) ([#8202](https://github.com/kubermatic/dashboard/pull/8202))
+- Add some KubeLB Enhancements ([#7958](https://github.com/kubermatic/dashboard/pull/7958))
+
+### Updates
+
+- Add support for k8s patch releases v1.35.7/v1.34.10 ([#16166](https://github.com/kubermatic/kubermatic/pull/16166))
+- Update KubeLB CCM to v1.4.3 ([#16132](https://github.com/kubermatic/kubermatic/pull/16132))
+- Update Machine-controller to [v1.65.5](https://github.com/kubermatic/machine-controller/releases/tag/v1.65.5) ([#16180](https://github.com/kubermatic/kubermatic/pull/16180))
+- Update machine-controller to v1.65.4 ([#16175](https://github.com/kubermatic/kubermatic/pull/16175))
+- Update MLA Gateway nginx image to v1.31.2-alpine ([#16084](https://github.com/kubermatic/kubermatic/pull/16084))
+
+## v2.30.5
+
+**GitHub release: [v2.30.5](https://github.com/kubermatic/kubermatic/releases/tag/v2.30.5)**
+
+### Supported Kubernetes Versions
+
+- Add support for k8s patch releases 1.35.6/1.34.9/1.33.13 ([#15993](https://github.com/kubermatic/kubermatic/pull/15993))
+
+### Bugfixes
+
+- Fix a kkp-master-operator issue where the /nvidia-gpu-operator ApplicationDefinition would fail with a context deadline exceeded error during KKP upgrades ([#15960](https://github.com/kubermatic/kubermatic/pull/15960))
+- Fix apiserver OIDC issuer NetworkPolicies for OIDC issuers exposed through selector backed seed side LoadBalancer Services, like KubeLB, when the CNI enforces egress against translated backend pod identities ([#16028](https://github.com/kubermatic/kubermatic/pull/16028))
+- Fix ee resource quota validation for KubeVirt MachineDeployments using user-deployed namespaced VirtualMachineInstancetype resources (e.g. custom GPU instancetypes). Previously, machine creation was incorrectly rejected with "instancetype not found" when resource quotas were configured ([#15958](https://github.com/kubermatic/kubermatic/pull/15958))
+- Fix seed Prometheus scraping envoy-agent directly via worker private IPs for tunneling user clusters ([#16024](https://github.com/kubermatic/kubermatic/pull/16024))
+- KKP now configures Cilium to exclude the reserved (KKP) NodeLocalDNS address from local address detection when NodeLocalDNS is enabled. This fixes DNS access to NodeLocalDNS for Cilium clusters with restrictive egress NetworkPolicies, for example Web Terminal sessions with internet access disabled. Existing clusters require a restart of the Cilium DaemonSet for the new startup configuration to take effect if needed. Admins can either restart it manually or set Cilium's `rollOutCiliumPods=true` Helm value, this will roll the agents automatically on configmap changes ([#15996](https://github.com/kubermatic/kubermatic/pull/15996))
+- Mirror-images now ignores configured dockerTagSuffix values together with repository overrides when --ignore-repository-overrides is set, so reused offline configurations resolve upstream images instead of failing with MANIFEST_UNKNOWN ([#15967](https://github.com/kubermatic/kubermatic/pull/15967))
+- Fix the user cluster event count and last occurrence date ([#8102](https://github.com/kubermatic/dashboard/pull/8102))
+- Fix the web terminal failing with a TLS "unknown authority" error ([#8135](https://github.com/kubermatic/dashboard/pull/8135))
+- Vim is now pre-installed in the web-terminal image ([#8134](https://github.com/kubermatic/dashboard/pull/8134))
+
+### Updates
+
+- Update machine-controller to v1.65.3 ([#16022](https://github.com/kubermatic/kubermatic/pull/16022))
+- Update the default Cilium CNI version to 1.18.10 and added Cilium 1.17.16 and 1.18.10 as supported CNI versions ([#15968](https://github.com/kubermatic/kubermatic/pull/15968)
+- Update Go version to v1.25.11 ([#15987](https://github.com/kubermatic/kubermatic/pull/15987))
+- Update OSM to v1.10.7 ([#16020](https://github.com/kubermatic/kubermatic/pull/16020))
+- Update the KubeVirt CSI driver operator to v0.5.3 to fix StorageClasses getting an empty reclaimPolicy when no reclaimPolicy is configured ([#16032](https://github.com/kubermatic/kubermatic/pull/16032))
+
+### Cleanup
+
+- The dashboard now reports its real version and edition at startup instead of always logging "Development" ([#8131](https://github.com/kubermatic/dashboard/pull/8131))
+
+## v2.30.4
+
+**GitHub release: [v2.30.4](https://github.com/kubermatic/kubermatic/releases/tag/v2.30.4)**
+
+### New Features
+
+- Add allowVolumeExpansion and reclaimPolicy fields to the KubeVirtInfraStorageClass struct in the API, enabling explicit configuration of volume expansion and reclaim policy ([#15912](https://github.com/kubermatic/kubermatic/pull/15912))
+- Reduces the Deployment/StatefulSet/DaemonSet revisionHistoryLimit of user cluster components to 2 to save etcd resources ([#15823](https://github.com/kubermatic/kubermatic/pull/15823))
+
+### Bugfixes
+
+- Fix recovery for Helm-based ApplicationInstallations whose Helm release is stuck in a pending state or whose retry state no longer matches the deployed Helm release ([#15892](https://github.com/kubermatic/kubermatic/pull/15892))
+- BYO Gateway migrations now wait for the external Gateway and KKP-managed HTTPRoutes to be accepted before completing Gateway cleanup ([#15896](https://github.com/kubermatic/kubermatic/pull/15896))
+- SSH keys from machine deployment providerSpec are no longer removed from worker nodes by the user-ssh-key-agent ([#15863](https://github.com/kubermatic/kubermatic/pull/15863))
+- Add Bring Your Own Gateway support for Gateway API mode. Operators can configure `spec.ingress.gateway.externalGateway` in the KubermaticConfiguration to make KKP attach its managed HTTPRoutes to an externally managed Gateway instead of creating and managing the default Gateway itself ([#15899](https://github.com/kubermatic/kubermatic/pull/15899))
+- Fix Project Resource Quota dialog showing incorrect Memory and Storage values after save ([#8076](https://github.com/kubermatic/Dashboard/pull/8076))
+- Cluster/machine metrics endpoints return an empty result for unavailable BYO CNI user clusters to avoid triggering KubermaticAPITooManyErrors alerts ([#8060](https://github.com/kubermatic/Dashboard/pull/8060))
+- Fix background-repeat for multi-line 'menu-item' icons on low zoom ([#8054](https://github.com/kubermatic/Dashboard/pull/8054))
+
+### Cleanups
+
+- The `Project.spec.defaultTenantSpec` field is now schemaless and preserves unknown fields. Existing values are forward-compatible. Refer to the KubeLB `TenantSpec` reference (https://docs.kubermatic.com/kubelb/latest/references/ee/#tenantspec) for details ([#15853](https://github.com/kubermatic/kubermatic/pull/15853))
+
+### Updates
+
+- Update Operating System Manager to v1.10.6 ([#15920](https://github.com/kubermatic/kubermatic/pull/15920))
+- Update KubeLB to v1.4.1 ([#15849](https://github.com/kubermatic/kubermatic/pull/15849))
+- Add support of k8s patch releases v1.35.5/v1.34.8/v1.33.12 ([#15870](https://github.com/kubermatic/kubermatic/pull/15870))
+- Update Machine Controller to v1.65.2 ([#15927](https://github.com/kubermatic/kubermatic/pull/15927))
+
+## v2.30.3
+
+**GitHub release: [v2.30.3](https://github.com/kubermatic/kubermatic/releases/tag/v2.30.3)**
+
+### Bugfixes
+
+- Remove the creation of cluster scope resources from KubeVirt provider and offload that functionality to the platform admin. Needed permissions to be created in the cluster:PersistentVolumes: "get", "list", "watch" ([#15830](https://github.com/kubermatic/kubermatic/pull/15830))
+- Update vSphere CSI driver to v3.6.0 to pick up upstream session and ListView handling improvements that address vSphere volume attach failures after vCenter session expiry ([#15766](https://github.com/kubermatic/kubermatic/pull/15766))
+- Fix project creation dialog not applying admin-configured allowed operating systems to new projects ([#7956](https://github.com/kubermatic/dashboard/pull/7956))
+- Fix the Azure availability zone selector data population within the MachineDeployment edit dialog ([#8028](https://github.com/kubermatic/dashboard/pull/8028))
+- Fix the default OS image selection to correctly use the enabled OS when Ubuntu is disabled globally or per project ([#7927](https://github.com/kubermatic/dashboard/pull/7927))
+- Fix VSphere provider ignoring project-level allowed operating system restrictions during cluster creation ([#8010](https://github.com/kubermatic/dashboard/pull/8010))
+- Update kubeone package to v1.12.3 ([#8042](https://github.com/kubermatic/dashboard/pull/8042))
+
+### Updates
+
+- Set Cilium v1.18.6 as the default Cilium CNI versionSet Canal v3.31 as the default Canal CNI version ([#15784](https://github.com/kubermatic/kubermatic/pull/15784), [#8027](https://github.com/kubermatic/dashboard/pull/8027))
+- Update KubeLB CCM version to 1.3.10 ([#15806](https://github.com/kubermatic/kubermatic/pull/15806))
+
+## v2.30.2
+
+**GitHub release: [v2.30.2](https://github.com/kubermatic/kubermatic/releases/tag/v2.30.2)**
+
+### Supported Kubernetes Versions
+
+- Add support for k8s patch releases v1.35.4/v1.34.7/v1.33.11 ([#15748](https://github.com/kubermatic/kubermatic/pull/15748))
+
+### New Features
+
+- Add cluster-level resource configuration for Kyverno. Users can now configure resource requests and limits for the Kyverno admission, background, cleanup, and reports controllers ([#15736](https://github.com/kubermatic/kubermatic/pull/15736))
+- Update gpu-operator application to v26.3.0 ([#15739](https://github.com/kubermatic/kubermatic/pull/15739))
+
+### Bugfixes
+
+- Kubermatic-operator now reconciles Gateway API resources before Deployments, preventing missing ConfigMaps from blocking Gateway creation ([#15712](https://github.com/kubermatic/kubermatic/pull/15712))
+
+### Updates
+
+- Update containerd version to v2.0.3 from v2.0.2 ([#15747](https://github.com/kubermatic/kubermatic/pull/15747))
+- Update KubeLB  version to 1.3.9 ([#15762](https://github.com/kubermatic/kubermatic/pull/15762))
+- Update OSM version to [v1.10.4](https://github.com/kubermatic/operating-system-manager/releases/tag/v1.10.4) ([#15767](https://github.com/kubermatic/kubermatic/pull/15767))
+
+## v2.30.1
+
+**GitHub release: [v2.30.1](https://github.com/kubermatic/kubermatic/releases/tag/v2.30.1)**
+
+### Supported Kubernetes Versions
+
+- Add support for k8s patch releases v1.35.3/v1.34.6/v1.33.10 ([#15679](https://github.com/kubermatic/kubermatic/pull/15679))
+
+### API Changes
+
+- Add `spec.ingress.gateway.infrastructureAnnotations` to `KubermaticConfiguration` to configure `Gateway.spec.infrastructure.annotations` on the operator managed Gateway ([#15725](https://github.com/kubermatic/kubermatic/pull/15725))
+- Add support for configuring an existing TLS Secret for the operator-managed default Gateway via `spec.ingress.gateway.tls.secretRef`. Hostname-based Gateway listeners synced from watched `HTTPRoute`s now also work in manual TLS mode by reusing the configured certificate references. When using manual TLS, the provided certificate must cover all served hostnames, including MLA/IAP hostnames ([#15732](https://github.com/kubermatic/kubermatic/pull/15732))
+
+### New Features
+
+- Add new alerts providing insights into health of cortex used by user-cluster MLA ([#15630](https://github.com/kubermatic/kubermatic/pull/15630))
+- Dex HTTPRoute path and pathType are now configurable via `httpRoute.path` and `httpRoute.pathType` values, allowing users to deploy Dex on a separate subdomain with root path instead of being limited to path-based routing ([#15627](https://github.com/kubermatic/kubermatic/pull/15627))
+- Envoy-gateway-controller: The envoyProxy image configuration now supports separate repository and tag fields for easier image mirroring. The legacy single-string format continues to work for backward compatibility ([#15595](https://github.com/kubermatic/kubermatic/pull/15595))
+- Seed Grafana now has 12 new grafana dashboards under MLA Stack folder ([#15603](https://github.com/kubermatic/kubermatic/pull/15603))
+
+### Bugfixes
+
+- Add missing condition to skip MLA Secrets deployment ([#15659](https://github.com/kubermatic/kubermatic/pull/15659))
+- Fix Gateway API listener churn where kubermatic-operator would cyclically remove and re-add dynamic listeners during reconciliation. Dynamic listeners added by httproute-gateway-sync controller are now preserved ([#15628](https://github.com/kubermatic/kubermatic/pull/15628))
+- Fix ineffective anti-affinity for the seed nodeport-proxy-envoy Deployment by aligning its anti-affinity selector with the pod labels actually used by the Deployment ([#15601](https://github.com/kubermatic/kubermatic/pull/15601))
+- Fix kubermatic-installer attempting to mirror a non-existent kubectl image from docker.io/bitnamilegacy for v1.35 ([#15576](https://github.com/kubermatic/kubermatic/pull/15576))
+- Fix KubeVirt CSI RBAC permissions by adding the missing patch and update verbs for persistentvolumeclaims, and introducing a ClusterRole and ClusterRoleBinding for persistentvolumes with get, list, and watch permissions ([#15602](https://github.com/kubermatic/kubermatic/pull/15602))
+- Fix seed-controller-manager cache sync timeout issue on large kkp instance clusters ([#15722](https://github.com/kubermatic/kubermatic/pull/15722))
+- Fix the datasource error on the `Kubermatic/Controller Manager` and `Kubermatic/Controller-Runtime Metrics` Grafana dashboards ([#14857](https://github.com/kubermatic/kubermatic/pull/14857))
+- Mirror the missing cluster-autoscaler images ([#15651](https://github.com/kubermatic/kubermatic/pull/15651))
+- System ApplicationDefinitions now receive upstream `defaultValuesBlock` changes during KKP upgrades. Admin customizations are preserved via hash-based detection ([#15691](https://github.com/kubermatic/kubermatic/pull/15691))
+- Update the kubectl image tag to `1.33.4` to fix container startup failures referenced in Velero charts ([#15643](https://github.com/kubermatic/kubermatic/pull/15643))
+- Canal v3.30 and v3.31 now pull Calico images from quay.io instead of docker.io to avoid Docker Hub rate limits that could block cluster bootstrap ([#15620](https://github.com/kubermatic/kubermatic/pull/15620))
+- Gateway and HTTPRoute resources are now properly owned by KubermaticConfiguration and will be garbage collected on deletion. User-added labels and annotations on these resources are no longer overwritten during reconciliation ([#15687](https://github.com/kubermatic/kubermatic/pull/15687))
+- The label key used for network policies for kubevirt virtual machines changed from `cluster.x-k8s.io/cluster-name` to `kubermatic.k8c.io/cluster-id` ([#15606](https://github.com/kubermatic/kubermatic/pull/15606))
+- A regression bug has been fixed where default kkp kubevirt instancetypes were displayed regardless of disabling them ([#8000](https://github.com/kubermatic/dashboard/pull/8000))
+- Fix a bug in vSphere provider configuration where networks were incorrectly assigned. Added validation to prevent using both the deprecated `vmNetName` and the `networks` field at the same time ([#7924](https://github.com/kubermatic/dashboard/pull/7924))
+- Fix missing OIDC group scope for kubelogin kubeconfig to fix group mapping for KKP user clusters ([#7990](https://github.com/kubermatic/dashboard/pull/7990))
+
+### Updates
+
+- Update OSM version to [v1.10.3](https://github.com/kubermatic/operating-system-manager/releases/tag/v1.10.3) ([#15696](https://github.com/kubermatic/kubermatic/pull/15696))
+- Update application-catalog-manager ([#15593](https://github.com/kubermatic/kubermatic/pull/15593))
+- Update KubeLB to v1.3.7 ([#15664](https://github.com/kubermatic/kubermatic/pull/15664))
 
 ## v2.30.0
 

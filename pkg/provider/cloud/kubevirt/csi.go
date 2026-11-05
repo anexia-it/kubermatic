@@ -87,7 +87,7 @@ func csiRoleReconciler(name string) reconciling.NamedRoleReconcilerFactory {
 				{
 					APIGroups: []string{""},
 					Resources: []string{"persistentvolumeclaims"},
-					Verbs:     []string{"get", "list", "watch"},
+					Verbs:     []string{"get", "list", "watch", "update", "patch"},
 				},
 			}
 
@@ -118,7 +118,7 @@ func csiRoleBindingReconciler(name, namespace string) reconciling.NamedRoleBindi
 	}
 }
 
-// reconcileCSIRoleRoleBinding reconciles the Role and RoleBinding needed by CSI driver.
+// reconcileCSIRoleRoleBinding reconciles the Role, RoleBinding, ClusterRole and ClusterRoleBinding needed by CSI driver.
 func reconcileCSIRoleRoleBinding(ctx context.Context, namespace string, client ctrlruntimeclient.Client) error {
 	roleReconcilers := []reconciling.NamedRoleReconcilerFactory{
 		csiRoleReconciler(resources.KubeVirtCSIServiceAccountName),

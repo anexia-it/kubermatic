@@ -21,7 +21,10 @@ import (
 
 	kubermaticv1 "k8c.io/kubermatic/sdk/v2/apis/kubermatic/v1"
 	"k8c.io/kubermatic/sdk/v2/semver"
+	"k8c.io/kubermatic/v2/pkg/defaulting"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 )
 
@@ -262,12 +265,8 @@ func TestValidateMirrorImages(t *testing.T) {
 	}
 	for _, tt := range testcases {
 		t.Run(tt.name, func(t *testing.T) {
-			spec := &kubermaticv1.KubermaticConfigurationSpec{
-				MirrorImages: tt.mirrorImages,
-			}
-			version := semver.NewSemverOrDie("v1.11.1")
-			spec.Versions.Default = version
-			spec.Versions.Versions = append(spec.Versions.Versions, *version)
+			spec := newValidKubermaticConfigurationSpec()
+			spec.MirrorImages = tt.mirrorImages
 			errs := ValidateKubermaticConfigurationSpec(spec)
 			if tt.valid {
 				if len(errs) > 0 {
@@ -277,6 +276,402 @@ func TestValidateMirrorImages(t *testing.T) {
 				if len(errs) == 0 {
 					t.Fatal("Expected configuration to be invalid, but it was accepted.")
 				}
+			}
+		})
+	}
+}
+
+func newValidKubermaticConfigurationSpec() *kubermaticv1.KubermaticConfigurationSpec {
+	spec := &kubermaticv1.KubermaticConfigurationSpec{
+		Ingress: kubermaticv1.KubermaticIngressConfiguration{
+			Domain: "example.com",
+		},
+	}
+
+	version := semver.NewSemverOrDie("v1.11.1")
+	spec.Versions.Default = version
+	spec.Versions.Versions = append(spec.Versions.Versions, *version)
+
+	return spec
+}
+
+func TestValidateGatewayTLSConfiguration(t *testing.T) {
+	baseVersion := semver.NewSemverOrDie("v1.11.1")
+
+	testcases := []struct {
+		name  string
+		spec  *kubermaticv1.KubermaticConfigurationSpec
+		valid bool
+	}{
+		{
+			name: "gateway tls secretRef with name is valid",
+			spec: &kubermaticv1.KubermaticConfigurationSpec{
+				Ingress: kubermaticv1.KubermaticIngressConfiguration{
+					Domain: "example.com",
+					Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+						TLS: &kubermaticv1.KubermaticGatewayTLSConfiguration{
+							SecretRef: &kubermaticv1.KubermaticGatewaySecretReference{
+								Name:      "kubermatic-tls",
+								Namespace: "shared-certs",
+							},
+						},
+					},
+				},
+			},
+			valid: true,
+		},
+		{
+			name: "gateway tls secretRef without name is invalid",
+			spec: &kubermaticv1.KubermaticConfigurationSpec{
+				Ingress: kubermaticv1.KubermaticIngressConfiguration{
+					Domain: "example.com",
+					Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+						TLS: &kubermaticv1.KubermaticGatewayTLSConfiguration{
+							SecretRef: &kubermaticv1.KubermaticGatewaySecretReference{},
+						},
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "gateway tls secretRef and certificate issuer are mutually exclusive",
+			spec: &kubermaticv1.KubermaticConfigurationSpec{
+				Ingress: kubermaticv1.KubermaticIngressConfiguration{
+					Domain: "example.com",
+					CertificateIssuer: corev1.TypedLocalObjectReference{
+						Name: "letsencrypt-prod",
+						Kind: "ClusterIssuer",
+					},
+					Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+						TLS: &kubermaticv1.KubermaticGatewayTLSConfiguration{
+							SecretRef: &kubermaticv1.KubermaticGatewaySecretReference{
+								Name: "kubermatic-tls",
+							},
+						},
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "external gateway rejects leftover tls",
+			spec: &kubermaticv1.KubermaticConfigurationSpec{
+				Ingress: kubermaticv1.KubermaticIngressConfiguration{
+					Domain: "example.com",
+					CertificateIssuer: corev1.TypedLocalObjectReference{
+						Name: "letsencrypt-prod",
+						Kind: "ClusterIssuer",
+					},
+					Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+						ExternalGateway: &kubermaticv1.KubermaticExternalGatewayReference{
+							Name:      "platform-gateway",
+							Namespace: "networking",
+						},
+						TLS: &kubermaticv1.KubermaticGatewayTLSConfiguration{
+							SecretRef: &kubermaticv1.KubermaticGatewaySecretReference{},
+						},
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "external gateway rejects empty tls",
+			spec: &kubermaticv1.KubermaticConfigurationSpec{
+				Ingress: kubermaticv1.KubermaticIngressConfiguration{
+					Domain: "example.com",
+					Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+						ExternalGateway: &kubermaticv1.KubermaticExternalGatewayReference{
+							Name:      "platform-gateway",
+							Namespace: "networking",
+						},
+						TLS: &kubermaticv1.KubermaticGatewayTLSConfiguration{},
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "external gateway rejects custom class name",
+			spec: &kubermaticv1.KubermaticConfigurationSpec{
+				Ingress: kubermaticv1.KubermaticIngressConfiguration{
+					Domain: "example.com",
+					Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+						ExternalGateway: &kubermaticv1.KubermaticExternalGatewayReference{
+							Name:      "platform-gateway",
+							Namespace: "networking",
+						},
+						ClassName: "my-custom-gatewayclass",
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "external gateway accepts legacy default class name from removed CRD default",
+			spec: &kubermaticv1.KubermaticConfigurationSpec{
+				Ingress: kubermaticv1.KubermaticIngressConfiguration{
+					Domain: "example.com",
+					Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+						ExternalGateway: &kubermaticv1.KubermaticExternalGatewayReference{
+							Name:      "platform-gateway",
+							Namespace: "networking",
+						},
+						ClassName: defaulting.DefaultGatewayClassName,
+					},
+				},
+			},
+			valid: true,
+		},
+		{
+			name: "external gateway rejects infrastructure annotations",
+			spec: &kubermaticv1.KubermaticConfigurationSpec{
+				Ingress: kubermaticv1.KubermaticIngressConfiguration{
+					Domain: "example.com",
+					Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+						ExternalGateway: &kubermaticv1.KubermaticExternalGatewayReference{
+							Name:      "platform-gateway",
+							Namespace: "networking",
+						},
+						InfrastructureAnnotations: map[string]string{
+							"metallb.io/address-pool": "public",
+						},
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "external gateway allows empty infrastructure annotations",
+			spec: &kubermaticv1.KubermaticConfigurationSpec{
+				Ingress: kubermaticv1.KubermaticIngressConfiguration{
+					Domain: "example.com",
+					Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+						ExternalGateway: &kubermaticv1.KubermaticExternalGatewayReference{
+							Name:      "platform-gateway",
+							Namespace: "networking",
+						},
+						InfrastructureAnnotations: map[string]string{},
+					},
+				},
+			},
+			valid: true,
+		},
+		{
+			name: "external gateway rejects certificate issuer",
+			spec: &kubermaticv1.KubermaticConfigurationSpec{
+				Ingress: kubermaticv1.KubermaticIngressConfiguration{
+					Domain: "example.com",
+					CertificateIssuer: corev1.TypedLocalObjectReference{
+						Name: "letsencrypt-prod",
+						Kind: "ClusterIssuer",
+					},
+					Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+						ExternalGateway: &kubermaticv1.KubermaticExternalGatewayReference{
+							Name:      "platform-gateway",
+							Namespace: "networking",
+						},
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "external gateway without name is invalid",
+			spec: &kubermaticv1.KubermaticConfigurationSpec{
+				Ingress: kubermaticv1.KubermaticIngressConfiguration{
+					Domain: "example.com",
+					Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+						ExternalGateway: &kubermaticv1.KubermaticExternalGatewayReference{
+							Namespace: "networking",
+						},
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "external gateway using default key with omitted namespace is statically valid",
+			spec: &kubermaticv1.KubermaticConfigurationSpec{
+				Ingress: kubermaticv1.KubermaticIngressConfiguration{
+					Domain: "example.com",
+					Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+						ExternalGateway: &kubermaticv1.KubermaticExternalGatewayReference{
+							Name: "kubermatic",
+						},
+					},
+				},
+			},
+			valid: true,
+		},
+		{
+			name: "external gateway name with dots is valid",
+			spec: &kubermaticv1.KubermaticConfigurationSpec{
+				Ingress: kubermaticv1.KubermaticIngressConfiguration{
+					Domain: "example.com",
+					Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+						ExternalGateway: &kubermaticv1.KubermaticExternalGatewayReference{
+							Name:      "platform.gateway",
+							Namespace: "networking",
+						},
+					},
+				},
+			},
+			valid: true,
+		},
+		{
+			name: "external gateway using default key with explicit namespace is statically valid",
+			spec: &kubermaticv1.KubermaticConfigurationSpec{
+				Ingress: kubermaticv1.KubermaticIngressConfiguration{
+					Domain: "example.com",
+					Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+						ExternalGateway: &kubermaticv1.KubermaticExternalGatewayReference{
+							Name:      "kubermatic",
+							Namespace: "kubermatic",
+						},
+					},
+				},
+			},
+			valid: true,
+		},
+		{
+			name: "external gateway using default name in different namespace is valid",
+			spec: &kubermaticv1.KubermaticConfigurationSpec{
+				Ingress: kubermaticv1.KubermaticIngressConfiguration{
+					Domain: "example.com",
+					Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+						ExternalGateway: &kubermaticv1.KubermaticExternalGatewayReference{
+							Name:      "kubermatic",
+							Namespace: "networking",
+						},
+					},
+				},
+			},
+			valid: true,
+		},
+		{
+			name: "external gateway with invalid namespace is invalid",
+			spec: &kubermaticv1.KubermaticConfigurationSpec{
+				Ingress: kubermaticv1.KubermaticIngressConfiguration{
+					Domain: "example.com",
+					Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+						ExternalGateway: &kubermaticv1.KubermaticExternalGatewayReference{
+							Name:      "platform-gateway",
+							Namespace: "Not_Valid",
+						},
+					},
+				},
+			},
+			valid: false,
+		},
+	}
+
+	for _, tt := range testcases {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.spec.Versions.Default = baseVersion
+			tt.spec.Versions.Versions = append(tt.spec.Versions.Versions, *baseVersion)
+
+			errs := ValidateKubermaticConfigurationSpec(tt.spec)
+			if tt.valid {
+				if len(errs) > 0 {
+					t.Fatalf("Expected configuration to be valid, but got errors: %v", errs.ToAggregate())
+				}
+			} else {
+				if len(errs) == 0 {
+					t.Fatal("Expected configuration to be invalid, but it was accepted.")
+				}
+			}
+		})
+	}
+}
+
+func TestValidateExternalGatewayConfigurationForbidsManagedGatewayFields(t *testing.T) {
+	spec := &kubermaticv1.KubermaticConfigurationSpec{
+		Ingress: kubermaticv1.KubermaticIngressConfiguration{
+			Domain: "example.com",
+			CertificateIssuer: corev1.TypedLocalObjectReference{
+				Name: "letsencrypt-prod",
+				Kind: "ClusterIssuer",
+			},
+			Gateway: &kubermaticv1.KubermaticGatewayConfiguration{
+				ExternalGateway: &kubermaticv1.KubermaticExternalGatewayReference{
+					Name:      "platform-gateway",
+					Namespace: "networking",
+				},
+				ClassName: "my-custom-gatewayclass",
+				InfrastructureAnnotations: map[string]string{
+					"metallb.io/address-pool": "public",
+				},
+				TLS: &kubermaticv1.KubermaticGatewayTLSConfiguration{
+					SecretRef: &kubermaticv1.KubermaticGatewaySecretReference{
+						Name: "kubermatic-tls",
+					},
+				},
+			},
+		},
+	}
+
+	errs := ValidateExternalGatewayConfiguration(spec)
+	wantForbiddenPaths := map[string]bool{
+		"spec.ingress.gateway.className":                 false,
+		"spec.ingress.gateway.infrastructureAnnotations": false,
+		"spec.ingress.gateway.tls":                       false,
+		"spec.ingress.certificateIssuer":                 false,
+	}
+
+	for _, err := range errs {
+		if err.Type != field.ErrorTypeForbidden {
+			continue
+		}
+		if _, ok := wantForbiddenPaths[err.Field]; ok {
+			wantForbiddenPaths[err.Field] = true
+		}
+	}
+
+	for path, found := range wantForbiddenPaths {
+		if !found {
+			t.Fatalf("expected forbidden error for %s, got %v", path, errs.ToAggregate())
+		}
+	}
+}
+
+func TestValidateAnexiaCCMVersion(t *testing.T) {
+	tests := []struct {
+		name    string
+		version string
+		valid   bool
+	}{
+		{name: "empty", valid: true},
+		{name: "semantic version", version: "1.5.9", valid: true},
+		{name: "version with prefix", version: "v1.5.9", valid: true},
+		{name: "invalid slash", version: "1.5/9", valid: false},
+		{name: "invalid colon", version: "1.5:9", valid: false},
+		{name: "invalid whitespace", version: "1.5.9 latest", valid: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			version := semver.NewSemverOrDie("v1.31.0")
+			spec := &kubermaticv1.KubermaticConfigurationSpec{
+				Versions: kubermaticv1.KubermaticVersioningConfiguration{
+					Default:  version,
+					Versions: []semver.Semver{*version},
+				},
+			}
+			spec.UserCluster.Anexia.CCMVersion = tt.version
+
+			err := ValidateKubermaticConfigurationSpec(spec).ToAggregate()
+			if (err == nil) != tt.valid {
+				t.Fatalf("expected valid=%t, got error %v", tt.valid, err)
+			}
+
+			clusterErr := validateAnexiaCloudSpec(&kubermaticv1.AnexiaCloudSpec{
+				Token:      "token",
+				CCMVersion: tt.version,
+			})
+			if (clusterErr == nil) != tt.valid {
+				t.Fatalf("expected cluster valid=%t, got error %v", tt.valid, clusterErr)
 			}
 		})
 	}

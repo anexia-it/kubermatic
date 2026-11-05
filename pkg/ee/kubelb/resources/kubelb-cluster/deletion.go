@@ -25,18 +25,13 @@
 package resources
 
 import (
-	"k8c.io/kubelb/api/ee/kubelb.k8c.io/v1alpha1"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrlruntimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func ResourcesForDeletion(name string) []ctrlruntimeclient.Object {
-	return []ctrlruntimeclient.Object{
-		&v1alpha1.Tenant{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: name,
-			},
-		},
-	}
+	tenant := &unstructured.Unstructured{}
+	tenant.SetGroupVersionKind(KubelbTenantGVK)
+	tenant.SetName(name)
+	return []ctrlruntimeclient.Object{tenant}
 }

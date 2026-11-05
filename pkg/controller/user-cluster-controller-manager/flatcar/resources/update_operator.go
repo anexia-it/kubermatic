@@ -29,7 +29,7 @@ import (
 
 const (
 	OperatorDeploymentName = "flatcar-linux-update-operator"
-	operatorVersion        = "v0.9.0"
+	operatorVersion        = "v0.10.0-rc2"
 )
 
 var (

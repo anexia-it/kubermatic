@@ -59,7 +59,9 @@ func setupControllers(
 	caBundle *certificates.CABundle,
 	clusterIsPaused userclustercontrollermanager.IsPausedChecker,
 	namespace string,
+	kubeVirtInfraNamespace string,
 	kyvernoEnabled bool,
+	kubeLBDisableGatewayAPIProtection bool,
 ) error {
 	return nil
 }

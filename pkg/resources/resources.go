@@ -658,11 +658,14 @@ const (
 	KubeOneOpenStack           = "openstack"
 	KubeOneVSphere             = "vsphere"
 	KubeOneImage               = "quay.io/kubermatic/kubeone"
-	KubeOneImageTag            = "v1.7.2"
-	KubeOneScript              = `
+	KubeOneImageTag            = "v1.13.7"
+	// KubeOneScript prepares the SSH agent for the KubeOne jobs. The agent socket is
+	// bound to /tmp because OpenSSH 10+ (KubeOne images >= v1.13) creates it under
+	// ~/.ssh/agent/ by default, and /root/.ssh is a read-only Secret mount in the jobs.
+	KubeOneScript = `
 #!/usr/bin/env bash
 
-eval ` + "`" + "ssh-agent" + "`" + ` > /dev/null
+eval ` + "`" + "ssh-agent -a /tmp/kubeone-agent.sock" + "`" + ` > /dev/null
 printf "#!/bin/sh\necho $PASSPHRASE" > script_returning_pass
 chmod +x script_returning_pass
 DISPLAY=1 SSH_ASKPASS="./script_returning_pass" ssh-add ~/.ssh/id_rsa > /dev/null 2> /dev/null
@@ -950,12 +953,15 @@ const (
 	MLAGatewayKeySecretKey           = "gateway.key"
 	MLAGatewayCertSecretKey          = "gateway.crt"
 
-	// MLAMonitoringAgentCertificatesSecretName is the name for the secret containing the Monitoring Agent (grafana-agent) client certificates.
+	// MLAMonitoringAgentCertificatesSecretName is the name for the secret containing the Monitoring Agent (Grafana Alloy) client certificates.
 	MLAMonitoringAgentCertificatesSecretName = "monitoring-agent-certificates"
-	MLAMonitoringAgentCertificateCommonName  = "grafana-agent"
-	MLAMonitoringAgentClientKeySecretKey     = "client.key"
-	MLAMonitoringAgentClientCertSecretKey    = "client.crt"
-	MLAMonitoringAgentClientCertMountPath    = "/etc/ssl/mla"
+	// MLAMonitoringAgentCertificateCommonName is kept as "grafana-agent" on purpose: the MLA gateway
+	// only verifies the client certificate against the CA and derives the tenant from the injected
+	// X-Scope-OrgID header, so renaming the CN would only churn certificates on existing clusters.
+	MLAMonitoringAgentCertificateCommonName = "grafana-agent"
+	MLAMonitoringAgentClientKeySecretKey    = "client.key"
+	MLAMonitoringAgentClientCertSecretKey   = "client.crt"
+	MLAMonitoringAgentClientCertMountPath   = "/etc/ssl/mla"
 
 	// MLALoggingAgentCertificatesSecretName is the name for the secret containing the Logging Agent client certificates.
 	MLALoggingAgentCertificatesSecretName = "logging-agent-certificates"
@@ -1013,6 +1019,10 @@ const (
 	UserClusterLegacyPromtailSecretName             = "promtail"
 	UserClusterLegacyPromtailDaemonSetName          = "promtail"
 	UserClusterLegacyPromtailCertificatesSecretName = "promtail-certificates"
+
+	// Legacy external-admin-user resource names, used only for cleanup/migration purposes.
+	UserClusterLegacyExternalAdminUserServiceAccountName     = "external-admin-user"
+	UserClusterLegacyExternalAdminUserClusterRoleBindingName = "external-admin-user"
 )
 
 const (

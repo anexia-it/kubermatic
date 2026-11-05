@@ -123,14 +123,14 @@ func MirrorImagesCommand(logger *logrus.Logger, versions kubermaticversion.Versi
 	cmd.PersistentFlags().BoolVar(&opt.DryRun, "dry-run", false, "Only print the names of source and destination images")
 	cmd.PersistentFlags().BoolVar(&opt.Insecure, "insecure", false, "Insecure option to bypass HTTPS/TLS certificate verification")
 
-	cmd.PersistentFlags().BoolVar(&opt.IgnoreRepositoryOverrides, "ignore-repository-overrides", true, "Ignore any configured registry overrides in the referenced KubermaticConfiguration to reuse a configuration that already specifies overrides (note that custom tags will still be observed and that this does not affect Helm charts configured via values.yaml; defaults to true)")
+	cmd.PersistentFlags().BoolVar(&opt.IgnoreRepositoryOverrides, "ignore-repository-overrides", true, "Ignore any configured registry overrides and tag suffixes in the referenced KubermaticConfiguration to reuse a configuration that already specifies overrides (note that the development-only dockerTag override is still observed and that this does not affect Helm charts configured via values.yaml; defaults to true)")
 
 	cmd.PersistentFlags().StringVar(&opt.AddonsPath, "addons-path", "", "Path to a local directory containing KKP addons. Takes precedence over --addons-image")
 	cmd.PersistentFlags().StringVar(&opt.AddonsImage, "addons-image", "", "Docker image containing KKP addons, if not given, falls back to the Docker image configured in the KubermaticConfiguration")
 
 	cmd.PersistentFlags().DurationVar(&opt.HelmTimeout, "helm-timeout", opt.HelmTimeout, "time to wait for Helm operations to finish")
 	cmd.PersistentFlags().StringVar(&opt.HelmValuesFile, "helm-values", "", "Use this values.yaml when rendering Helm charts")
-	cmd.PersistentFlags().StringVar(&opt.HelmBinary, "helm-binary", opt.HelmBinary, "Helm 3.x binary to use for rendering charts")
+	cmd.PersistentFlags().StringVar(&opt.HelmBinary, "helm-binary", opt.HelmBinary, "Helm 3.x or 4.x binary to use for rendering charts")
 
 	return cmd
 }
@@ -162,21 +162,10 @@ func getKubermaticConfiguration(options *MirrorImagesOptions) (*kubermaticv1.Kub
 	}
 
 	// if we pass the option to ignore repository overrides in the KubermaticConfiguration,
-	// we make sure we omit any repository configured in the loaded config so they get
-	// properly defaulted.
+	// we make sure we omit any repository and tag suffix configured in the loaded config
+	// so they get properly defaulted.
 	if options.IgnoreRepositoryOverrides {
-		config.Spec.API.DockerRepository = ""
-		config.Spec.UI.DockerRepository = ""
-		config.Spec.MasterController.DockerRepository = ""
-		config.Spec.SeedController.DockerRepository = ""
-		config.Spec.Webhook.DockerRepository = ""
-		config.Spec.UserCluster.KubermaticDockerRepository = ""
-		config.Spec.UserCluster.DNATControllerDockerRepository = ""
-		config.Spec.UserCluster.EtcdLauncherDockerRepository = ""
-		config.Spec.UserCluster.Addons.DockerRepository = ""
-		config.Spec.VerticalPodAutoscaler.Recommender.DockerRepository = ""
-		config.Spec.VerticalPodAutoscaler.Updater.DockerRepository = ""
-		config.Spec.VerticalPodAutoscaler.AdmissionController.DockerRepository = ""
+		clearRepositoryOverrides(config)
 	}
 
 	kubermaticConfig, err := defaulting.DefaultConfiguration(config, zap.NewNop().Sugar())
@@ -185,6 +174,32 @@ func getKubermaticConfiguration(options *MirrorImagesOptions) (*kubermaticv1.Kub
 	}
 
 	return kubermaticConfig, nil
+}
+
+// clearRepositoryOverrides blanks all image repository overrides and tag suffixes in
+// the KubermaticConfiguration so DefaultConfiguration re-fills them with upstream
+// defaults. A DockerTagSuffix names a customer-built artifact that only exists in a
+// custom repository, so it must be cleared alongside the repositories; otherwise the
+// upstream repository is paired with a tag that upstream never published. The
+// development-only DockerTag override is intentionally left untouched.
+func clearRepositoryOverrides(config *kubermaticv1.KubermaticConfiguration) {
+	config.Spec.API.DockerRepository = ""
+	config.Spec.UI.DockerRepository = ""
+	config.Spec.MasterController.DockerRepository = ""
+	config.Spec.SeedController.DockerRepository = ""
+	config.Spec.Webhook.DockerRepository = ""
+	config.Spec.UserCluster.KubermaticDockerRepository = ""
+	config.Spec.UserCluster.DNATControllerDockerRepository = ""
+	config.Spec.UserCluster.EtcdLauncherDockerRepository = ""
+	config.Spec.UserCluster.Addons.DockerRepository = ""
+	config.Spec.VerticalPodAutoscaler.Recommender.DockerRepository = ""
+	config.Spec.VerticalPodAutoscaler.Updater.DockerRepository = ""
+	config.Spec.VerticalPodAutoscaler.AdmissionController.DockerRepository = ""
+
+	// tag suffixes are tied to a custom repository and must be cleared too
+	config.Spec.API.DockerTagSuffix = ""
+	config.Spec.UI.DockerTagSuffix = ""
+	config.Spec.UserCluster.Addons.DockerTagSuffix = ""
 }
 
 func getAddonsPath(ctx context.Context, logger *logrus.Logger, options *MirrorImagesOptions, kubermaticConfig *kubermaticv1.KubermaticConfiguration) (string, error) {
@@ -400,24 +415,9 @@ func collectHelmChartImages(ctx context.Context, logger *logrus.Logger, kubermat
 		return imageSet, nil
 	}
 
-	// error out early if there is no useful Helm binary
 	helmClient, err := helm.NewCLI(options.HelmBinary, "", "", options.HelmTimeout, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Helm client: %w", err)
-	}
-
-	helmVersion, err := helmClient.Version()
-	if err != nil {
-		return nil, fmt.Errorf("failed to check Helm version: %w", err)
-	}
-
-	if helmVersion.LessThan(MinHelmVersion) {
-		return nil, fmt.Errorf(
-			"the installer requires Helm >= %s, but detected %q as %s (use --helm-binary or $HELM_BINARY to override)",
-			MinHelmVersion,
-			options.HelmBinary,
-			helmVersion,
-		)
 	}
 
 	chartsLogger := logger.WithField("charts-directory", options.ChartsDirectory)

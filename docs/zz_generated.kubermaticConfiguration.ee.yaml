@@ -69,7 +69,7 @@ spec:
         # The default value is "quay.io/kubermatic/application-catalog-manager"
         repository: quay.io/kubermatic/application-catalog-manager
         # Tag is used to override the application-catalog manager image tag.
-        tag: 91dddf224f1cefd8dfe043e22628a23eca886142
+        tag: 4aa5a55d02734ff672a9f018d55430a55e90ef1a
       # Limit defines filtering criteria for ApplicationDefinitions to be reconciled.
       # Deprecated: This field is deprecated and serves no purpose. It is preserved for backward compatibility.
       limit:
@@ -251,6 +251,21 @@ spec:
     gateway:
       # ClassName is the GatewayClass to use.
       className: kubermatic-envoy-gateway
+      # ExternalGateway references a user-managed Gateway. When configured,
+      # kubermatic-operator does not create the default Gateway and only points
+      # managed HTTPRoutes at this Gateway. The reference must not resolve to an
+      # operator-managed Gateway. A Gateway with a KubermaticConfiguration controller
+      # ownerReference is considered operator-managed; remove stale ownerReferences
+      # before reusing a former managed Gateway as external. ClassName,
+      # InfrastructureAnnotations, TLS, and spec.ingress.certificateIssuer must
+      # not be set when this field is set.
+      externalGateway: null
+      # InfrastructureAnnotations configures Gateway.spec.infrastructure.annotations on the
+      # operator-managed Gateway so the Gateway implementation can propagate them to the
+      # generated infrastructure resources.
+      infrastructureAnnotations: null
+      # TLS configures TLS for the operator-managed default Gateway.
+      tls: null
     # NamespaceOverride need to be set if a different ingress-controller is used than the KKP default one.
     namespaceOverride: ""
   # MasterController configures the master-controller-manager.
@@ -323,7 +338,7 @@ spec:
     backupDeleteContainer: |2
 
       name: delete-container
-      image: d3fk/s3cmd@sha256:fb4c4dcf3b842c3d0ead58bda26d05d045b77546e11ac2143d90abca02cbe823
+      image: d3fk/s3cmd@sha256:426f98fdc8a2c7d7a879eb0da57131e6eec4d239881448f23946216fe801b614
       command:
       - /bin/sh
       - -c
@@ -359,7 +374,7 @@ spec:
     backupStoreContainer: |2
 
       name: store-container
-      image: d3fk/s3cmd@sha256:fb4c4dcf3b842c3d0ead58bda26d05d045b77546e11ac2143d90abca02cbe823
+      image: d3fk/s3cmd@sha256:426f98fdc8a2c7d7a879eb0da57131e6eec4d239881448f23946216fe801b614
       command:
       - /bin/sh
       - -c
@@ -535,6 +550,12 @@ spec:
       dockerTagSuffix: ""
     # AdmissionPlugins configures global admission plugin settings for all user clusters.
     admissionPlugins: null
+    # Anexia configures components used by Anexia user clusters.
+    anexia:
+      # CCMVersion configures the default Anexia cloud-controller-manager version.
+      # Individual clusters can override this value in their AnexiaCloudSpec.
+      # If empty, the version bundled with KKP is used.
+      ccmVersion: ""
     # APIServerReplicas configures the replica count for the API-Server deployment inside user clusters.
     apiserverReplicas: 2
     # Applications contains configuration for default Application settings.
@@ -563,6 +584,10 @@ spec:
     etcdVolumeSize: 5Gi
     # KubeLB configures the kubeLB component.
     kubelb:
+      # DisableGatewayAPIProtection disables, for all user clusters, the policy that reserves the Gateway API
+      # CRDs for the kubeLB CCM, and stops KKP from removing the upstream Gateway API safe-upgrades policy.
+      # Datacenters and clusters cannot re-enable it.
+      disableGatewayAPIProtection: false
       # ImageRepository is used to override the KubeLB image repository.
       # It is only for development, tests and PoC purposes. This field must not be set in production environments.
       imageRepository: ""
@@ -649,7 +674,7 @@ spec:
   # Versions configures the available and default Kubernetes versions and updates.
   versions:
     # Default is the default version to offer users.
-    default: v1.34.5
+    default: v1.34.12
     # ExternalClusters contains the available and default Kubernetes versions and updates for ExternalClusters.
     externalClusters:
       aks:
@@ -732,14 +757,32 @@ spec:
       - v1.33.7
       - v1.33.8
       - v1.33.9
+      - v1.33.10
+      - v1.33.11
+      - v1.33.12
+      - v1.33.13
       - v1.34.1
       - v1.34.2
       - v1.34.3
       - v1.34.4
       - v1.34.5
+      - v1.34.6
+      - v1.34.7
+      - v1.34.8
+      - v1.34.9
+      - v1.34.10
+      - v1.34.11
+      - v1.34.12
       - v1.35.0
       - v1.35.1
       - v1.35.2
+      - v1.35.3
+      - v1.35.4
+      - v1.35.5
+      - v1.35.6
+      - v1.35.7
+      - v1.35.8
+      - v1.35.9
   # VerticalPodAutoscaler configures the Kubernetes VPA integration.
   verticalPodAutoscaler:
     admissionController:

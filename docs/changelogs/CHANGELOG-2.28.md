@@ -9,6 +9,88 @@
 - [v2.28.6](#v2286)
 - [v2.28.7](#v2287)
 - [v2.28.8](#v2288)
+- [v2.28.9](#v2289)
+- [v2.28.10](#v22810)
+- [v2.28.11](#v22811)
+- [v2.28.12](#v22812)
+- [v2.28.13](#v22813)
+
+## v2.28.13
+
+**GitHub release: [v2.28.13](https://github.com/kubermatic/kubermatic/releases/tag/v2.28.13)**
+
+### Bugfixes
+
+- Fix UserProjectBindings being deleted before their User logs in for the first time ([#16131](https://github.com/kubermatic/kubermatic/pull/16131))
+- Fix KubeLB option precedence so enforced datacenters always show the option regardless of the enabled flag ([#8175](https://github.com/kubermatic/dashboard/pull/8175))
+
+### Updates
+
+- Update MLA Gateway nginx image to v1.31.2-alpine ([#16084](https://github.com/kubermatic/kubermatic/pull/16084))
+
+## v2.28.12
+
+**GitHub release: [v2.28.12](https://github.com/kubermatic/kubermatic/releases/tag/v2.28.12)**
+
+### Supported Kubernetes Versions
+
+- Add support for k8s patch release v1.33.13 ([#15995](https://github.com/kubermatic/kubermatic/pull/15995))
+
+### Bugfixes
+
+- Fix the web terminal failing with a TLS "unknown authority" error ([#8135](https://github.com/kubermatic/dashboard/pull/8135))
+- Vim is now pre-installed in the web-terminal image ([#8148](https://github.com/kubermatic/dashboard/pull/8148))
+
+### Cleanup
+
+- The dashboard now reports its real version and edition at startup instead of always logging "Development" ([#8131](https://github.com/kubermatic/dashboard/pull/8131))
+
+## v2.28.11
+
+**GitHub release: [v2.28.11](https://github.com/kubermatic/kubermatic/releases/tag/v2.28.11)**
+
+### Bugfixes
+
+- SSH keys from machine deployment providerSpec are no longer removed from worker nodes by the user-ssh-key-agent ([#15863](https://github.com/kubermatic/kubermatic/pull/15863))
+- Cluster/machine metrics endpoints return an empty result for unavailable BYO CNI user clusters to avoid triggering KubermaticAPITooManyErrors alerts ([#8060](https://github.com/kubermatic/dashboard/pull/8060))
+- Fix background-repeat for multi-line 'menu-item' icons on low zoom ([#8054](https://github.com/kubermatic/dashboard/pull/8054))
+- Fix the default OS image selection to correctly use the enabled OS when Ubuntu is disabled globally or per project ([#7927](https://github.com/kubermatic/dashboard/pull/7927))
+- Fix VSphere provider ignoring project-level allowed operating system restrictions during cluster creation ([#8010](https://github.com/kubermatic/dashboard/pull/8010))
+- Fix project creation dialog not applying admin-configured allowed operating systems to new projects ([#7956](https://github.com/kubermatic/dashboard/pull/7956))
+
+### Updates
+
+- Update vSphere CSI driver to v3.6.0 to pick up upstream session and ListView handling improvements that address vSphere volume attach failures after vCenter session expiry ([#15766](https://github.com/kubermatic/kubermatic/pull/15766))
+- Add support for k8s patch release v1.33.12 ([#15872](https://github.com/kubermatic/kubermatic/pull/15872))
+
+## v2.28.10
+
+**GitHub release:[v2.28.10](https://github.com/kubermatic/kubermatic/releases/tag/v2.28.10)**
+
+### Supported Kubernetes Versions
+
+- Add support for k8s patch release v1.33.11 ([#15750](https://github.com/kubermatic/kubermatic/pull/15750))
+
+### Updates
+
+- Update gpu-operator application to v26.3.0 ([#15761](https://github.com/kubermatic/kubermatic/pull/15761))
+
+## v2.28.9
+
+**GitHub release: [v2.28.9](https://github.com/kubermatic/kubermatic/releases/tag/v2.28.9)**
+
+### Supported Kubernetes Versions
+
+- Add support for k8s patch release v1.33.10 ([#15682](https://github.com/kubermatic/kubermatic/pull/15682))
+
+### New Features
+
+- Add new alerts providing insights into health of cortex used by user-cluster MLA ([#15630](https://github.com/kubermatic/kubermatic/pull/15630))
+- Seed Grafana now has 12 new grafana dashboards under MLA Stack folder ([#15633](https://github.com/kubermatic/kubermatic/pull/15633))
+
+### Bugfixes
+
+- Respect datacenter selectors for default/enforced apps.Prevent duplicate app additions when switching datacenters.Fix loading enforced apps in the edit/customize cluster template ([#7937](https://github.com/kubermatic/dashboard/pull/7937))
 
 ## v2.28.8
 

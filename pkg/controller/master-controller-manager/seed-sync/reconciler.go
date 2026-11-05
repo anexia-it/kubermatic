@@ -43,7 +43,7 @@ import (
 // installed.
 type Reconciler struct {
 	ctrlruntimeclient.Client
-
+	masterAPIReader  ctrlruntimeclient.Reader
 	seedClientGetter provider.SeedClientGetter
 	log              *zap.SugaredLogger
 	recorder         events.EventRecorder
@@ -54,7 +54,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, request reconcile.Request) (
 	logger.Debug("Reconciling")
 
 	seed := &kubermaticv1.Seed{}
-	if err := r.Get(ctx, request.NamespacedName, seed); err != nil {
+	// Use the API reader here to bypass the cache. We update the same Seed object we are watching
+	// in shared master/seed setups, and the stale cache can otherwise overwrite the latest state.
+	if err := r.masterAPIReader.Get(ctx, request.NamespacedName, seed); err != nil {
 		if apierrors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}

@@ -37,7 +37,7 @@ import (
 )
 
 var (
-	kubevirtStorageClassName = "kubevirt-local-path"
+	kubevirtStorageClassName = "kubevirt-longhorn"
 )
 
 func supportsStorage(cluster *kubermaticv1.Cluster) bool {
@@ -93,7 +93,7 @@ func TestStorage(ctx context.Context, log *zap.SugaredLogger, opts *ctypes.Optio
 					Containers: []corev1.Container{
 						{
 							Name:  "busybox",
-							Image: "quay.io/kubermatic/util:2.8.0",
+							Image: "quay.io/kubermatic/util:2.10.0",
 							Args: []string{
 								"/bin/sh",
 								"-c",

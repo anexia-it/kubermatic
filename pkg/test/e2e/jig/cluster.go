@@ -27,6 +27,7 @@ import (
 	kubermaticv1 "k8c.io/kubermatic/sdk/v2/apis/kubermatic/v1"
 	"k8c.io/kubermatic/sdk/v2/semver"
 	"k8c.io/kubermatic/v2/pkg/cluster/client"
+	kuberneteshelper "k8c.io/kubermatic/v2/pkg/kubernetes"
 	"k8c.io/kubermatic/v2/pkg/resources/reconciling"
 	"k8c.io/kubermatic/v2/pkg/util/wait"
 	"k8c.io/kubermatic/v2/pkg/version/kubermatic"
@@ -304,6 +305,16 @@ func (j *ClusterJig) Create(ctx context.Context, waitForHealthy bool) (*kubermat
 		}
 	}
 
+	// opt into KKP deleting user-cluster LoadBalancer and PVC resources on
+	// cluster deletion. Without these finalizers the clusterdeletion controller
+	// skips in-cluster LB/PV cleanup, which leaks cloud LBs for tests that
+	// install type=LoadBalancer services (e.g. ingress-nginx via apps).
+	if err := kuberneteshelper.TryAddFinalizer(ctx, j.client,
+		&kubermaticv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: j.clusterName}},
+		kubermaticv1.InClusterLBCleanupFinalizer, kubermaticv1.InClusterPVCleanupFinalizer); err != nil {
+		return nil, fmt.Errorf("failed to add in-cluster LB/PV cleanup finalizers: %w", err)
+	}
+
 	if err := j.installAddons(ctx); err != nil {
 		return nil, fmt.Errorf("failed to ensure addons: %w", err)
 	}
@@ -383,6 +394,36 @@ func (j *ClusterJig) WaitForHealthyControlPlane(ctx context.Context, timeout tim
 
 		return nil, nil
 	})
+}
+
+// WaitForKyvernoHealthy waits until all Kyverno controller deployments in the
+// seed cluster namespace are reported as healthy.
+func (j *ClusterJig) WaitForKyvernoHealthy(ctx context.Context, timeout time.Duration) error {
+	if j.clusterName == "" {
+		return errors.New("cluster jig has not created a cluster yet")
+	}
+
+	return wait.PollLog(ctx, j.log, 5*time.Second, timeout, func(ctx context.Context) (transient error, terminal error) {
+		curCluster := kubermaticv1.Cluster{}
+		if err := j.client.Get(ctx, types.NamespacedName{Name: j.clusterName}, &curCluster); err != nil {
+			return fmt.Errorf("failed to retrieve cluster: %w", err), nil
+		}
+
+		health := curCluster.Status.ExtendedHealth.Kyverno
+		if health == nil || *health != kubermaticv1.HealthStatusUp {
+			return fmt.Errorf("kyverno is %v", formatOptionalHealth(health)), nil
+		}
+
+		return nil, nil
+	})
+}
+
+func formatOptionalHealth(s *kubermaticv1.HealthStatus) string {
+	if s == nil {
+		return "not reported yet"
+	}
+
+	return string(*s)
 }
 
 func getUnhealthyComponents(health kubermaticv1.ExtendedClusterHealth) []string {

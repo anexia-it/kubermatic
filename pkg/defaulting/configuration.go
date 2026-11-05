@@ -77,7 +77,7 @@ const (
 
 	// Default image repository and tag.
 	DefaultApplicationManagerImageRepository = "quay.io/kubermatic/application-catalog-manager"
-	DefaultApplicationManagerImageTag        = "91dddf224f1cefd8dfe043e22628a23eca886142"
+	DefaultApplicationManagerImageTag        = "4aa5a55d02734ff672a9f018d55430a55e90ef1a"
 )
 
 func newSemver(s string) semver.Semver {
@@ -223,7 +223,7 @@ var (
 	}
 
 	DefaultKubernetesVersioning = kubermaticv1.KubermaticVersioningConfiguration{
-		Default: semver.NewSemverOrDie("v1.34.5"),
+		Default: semver.NewSemverOrDie("v1.34.12"),
 		// NB: We keep all patch releases that we supported, even if there's
 		// an auto-upgrade rule in place. That's because removing a patch
 		// release from this slice can break reconciliation loop for clusters
@@ -251,16 +251,34 @@ var (
 			newSemver("v1.33.7"),
 			newSemver("v1.33.8"),
 			newSemver("v1.33.9"),
+			newSemver("v1.33.10"),
+			newSemver("v1.33.11"),
+			newSemver("v1.33.12"),
+			newSemver("v1.33.13"),
 			// Kubernetes 1.34
 			newSemver("v1.34.1"),
 			newSemver("v1.34.2"),
 			newSemver("v1.34.3"),
 			newSemver("v1.34.4"),
 			newSemver("v1.34.5"),
+			newSemver("v1.34.6"),
+			newSemver("v1.34.7"),
+			newSemver("v1.34.8"),
+			newSemver("v1.34.9"),
+			newSemver("v1.34.10"),
+			newSemver("v1.34.11"),
+			newSemver("v1.34.12"),
 			// Kubernetes 1.35
 			newSemver("v1.35.0"),
 			newSemver("v1.35.1"),
 			newSemver("v1.35.2"),
+			newSemver("v1.35.3"),
+			newSemver("v1.35.4"),
+			newSemver("v1.35.5"),
+			newSemver("v1.35.6"),
+			newSemver("v1.35.7"),
+			newSemver("v1.35.8"),
+			newSemver("v1.35.9"),
 		},
 		Updates: []kubermaticv1.Update{
 			// ======= 1.32 =======
@@ -435,7 +453,17 @@ func DefaultConfiguration(config *kubermaticv1.KubermaticConfiguration, logger *
 		logger.Debugw("Defaulting field", "field", "ingress.className", "value", configCopy.Spec.Ingress.ClassName)
 	}
 
-	if configCopy.Spec.Ingress.Gateway != nil && configCopy.Spec.Ingress.Gateway.ClassName == "" {
+	if configCopy.Spec.Ingress.Gateway != nil && configCopy.Spec.Ingress.Gateway.UsesExternalGateway() && configCopy.Spec.Ingress.Gateway.ClassName == DefaultGatewayClassName {
+		// Existing KubermaticConfiguration objects created while the CRD still
+		// defaulted ingress.gateway.className carry the legacy value even when
+		// the user transitions to spec.ingress.gateway.externalGateway. Clearing
+		// it here lets validation accept the migrated object without an explicit
+		// className cleanup.
+		configCopy.Spec.Ingress.Gateway.ClassName = ""
+		logger.Debugw("Clearing legacy default ClassName because externalGateway is configured")
+	}
+
+	if configCopy.Spec.Ingress.Gateway != nil && !configCopy.Spec.Ingress.Gateway.UsesExternalGateway() && configCopy.Spec.Ingress.Gateway.ClassName == "" {
 		configCopy.Spec.Ingress.Gateway.ClassName = DefaultGatewayClassName
 		logger.Debugw("Defaulting field", "field", "ingress.gateway.className", "value", configCopy.Spec.Ingress.Gateway.ClassName)
 	}
@@ -702,7 +730,7 @@ func defaultExternalClusterVersioning(settings *kubermaticv1.KubermaticVersionin
 
 const DefaultBackupStoreContainer = `
 name: store-container
-image: d3fk/s3cmd@sha256:fb4c4dcf3b842c3d0ead58bda26d05d045b77546e11ac2143d90abca02cbe823
+image: d3fk/s3cmd@sha256:426f98fdc8a2c7d7a879eb0da57131e6eec4d239881448f23946216fe801b614
 command:
 - /bin/sh
 - -c
@@ -727,7 +755,7 @@ volumeMounts:
 
 const DefaultBackupDeleteContainer = `
 name: delete-container
-image: d3fk/s3cmd@sha256:fb4c4dcf3b842c3d0ead58bda26d05d045b77546e11ac2143d90abca02cbe823
+image: d3fk/s3cmd@sha256:426f98fdc8a2c7d7a879eb0da57131e6eec4d239881448f23946216fe801b614
 command:
 - /bin/sh
 - -c

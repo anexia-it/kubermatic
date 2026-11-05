@@ -427,9 +427,14 @@ type EnvoyLoadBalancerService struct {
 }
 type NodePortProxyComponentEnvoy struct {
 	NodeportProxyComponent `json:",inline"`
+
+	// No +kubebuilder:default for Replicas: the operator applies the default
+	// (DefaultEnvoyReplicas). A CRD default only gets applied where the "envoy"
+	// object is present, so the master Seed and its copy in the seed cluster can
+	// end up differing, which makes the seed-sync controller send no-op updates forever.
+
 	// Replicas sets the number of pod replicas for the nodeport-proxy-envoy deployment.
 	// Defaults to 3.
-	// +kubebuilder:default:=3
 	// +kubebuilder:validation:Minimum:=1
 	Replicas            *int32                   `json:"replicas,omitempty"`
 	LoadBalancerService EnvoyLoadBalancerService `json:"loadBalancerService,omitempty"`
@@ -1061,6 +1066,11 @@ type KubeVirtInfraStorageClass struct {
 	// cluster. However, if the value is set to `kubevirt-csi-driver`, the storage class cannot be used by CDI for VM disk
 	// image creation.
 	VolumeProvisioner KubeVirtVolumeProvisioner `json:"volumeProvisioner,omitempty"`
+	// ReclaimPolicy controls the reclaimPolicy for dynamically provisioned PersistentVolumes of this storage class.
+	// Defaults to Delete.
+	ReclaimPolicy string `json:"reclaimPolicy,omitempty"`
+	// AllowVolumeExpansion shows whether the storage class allow volume expand.
+	AllowVolumeExpansion bool `json:"allowVolumeExpansion,omitempty"`
 }
 
 type KubeVirtInfraVolumeSnapshotClass struct {
@@ -1345,9 +1355,9 @@ type KubeLBDatacenterSettings struct {
 	// Used to configure and override the default kubeLB settings.
 	KubeLBSettings `json:",inline"`
 	// Enabled is used to enable/disable kubeLB for the datacenter. This is used to control whether installing kubeLB is allowed or not for the datacenter.
-	Enabled bool `json:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty"`
 	// Enforced is used to enforce kubeLB installation for all the user clusters belonging to this datacenter. Setting enforced to false will not uninstall kubeLB from the user clusters and it needs to be disabled manually.
-	Enforced bool `json:"enforced,omitempty"`
+	Enforced *bool `json:"enforced,omitempty"`
 	// NodeAddressType is used to configure the address type from node, used for load balancing.
 	// Optional: Defaults to ExternalIP.
 	// +kubebuilder:validation:Enum=InternalIP;ExternalIP
@@ -1362,6 +1372,10 @@ type KubeLBDatacenterSettings struct {
 	EnableSecretSynchronizer bool `json:"enableSecretSynchronizer,omitempty"`
 	// DisableIngressClass is used to disable the ingress class `kubelb` filter for kubeLB.
 	DisableIngressClass bool `json:"disableIngressClass,omitempty"`
+	// DisableGatewayAPIProtection disables, for the user clusters of this datacenter, the policy that reserves
+	// the Gateway API CRDs for the kubeLB CCM, and stops KKP from removing the upstream Gateway API
+	// safe-upgrades policy. Clusters cannot re-enable it.
+	DisableGatewayAPIProtection bool `json:"disableGatewayAPIProtection,omitempty"`
 	// ExtraArgs are additional arbitrary flags to pass to the kubeLB CCM for the user cluster. These args are propagated to all the user clusters unless overridden at a cluster level.
 	ExtraArgs map[string]string `json:"extraArgs,omitempty"`
 }

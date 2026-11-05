@@ -620,6 +620,12 @@ spec:
                               Optional: KubeLB holds the configuration for the kubeLB at the data center level.
                               Only available in Enterprise Edition.
                             properties:
+                              disableGatewayAPIProtection:
+                                description: |-
+                                  DisableGatewayAPIProtection disables, for the user clusters of this datacenter, the policy that reserves
+                                  the Gateway API CRDs for the kubeLB CCM, and stops KKP from removing the upstream Gateway API
+                                  safe-upgrades policy. Clusters cannot re-enable it.
+                                type: boolean
                               disableIngressClass:
                                 description: DisableIngressClass is used to disable the ingress class `kubelb` filter for kubeLB.
                                 type: boolean
@@ -1285,6 +1291,9 @@ spec:
                                   kubevirt-<infra-storageClass-name>
                                 items:
                                   properties:
+                                    allowVolumeExpansion:
+                                      description: AllowVolumeExpansion shows whether the storage class allow volume expand.
+                                      type: boolean
                                     isDefaultClass:
                                       description: |-
                                         Optional: IsDefaultClass. If true, the created StorageClass in the tenant cluster will be annotated with:
@@ -1301,6 +1310,11 @@ spec:
                                         and services.
                                       type: object
                                     name:
+                                      type: string
+                                    reclaimPolicy:
+                                      description: |-
+                                        ReclaimPolicy controls the reclaimPolicy for dynamically provisioned PersistentVolumes of this storage class.
+                                        Defaults to Delete.
                                       type: string
                                     regions:
                                       description: |-
@@ -3667,7 +3681,6 @@ spec:
                               type: array
                           type: object
                         replicas:
-                          default: 3
                           description: |-
                             Replicas sets the number of pod replicas for the nodeport-proxy-envoy deployment.
                             Defaults to 3.

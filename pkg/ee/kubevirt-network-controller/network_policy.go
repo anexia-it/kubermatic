@@ -31,8 +31,10 @@ import (
 	kubermaticv1 "k8c.io/kubermatic/sdk/v2/apis/kubermatic/v1"
 	"k8c.io/reconciler/pkg/reconciling"
 
+	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrlruntimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -71,7 +73,7 @@ func namespacedClusterIsolationNetworkPolicyDefaultAllowReconciler(clusterName s
 			np.Spec = networkingv1.NetworkPolicySpec{
 				PodSelector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
-						"cluster.x-k8s.io/cluster-name": clusterName,
+						NetworkPolicyPodSelectorLabel: clusterName,
 					},
 				},
 				Egress: []networkingv1.NetworkPolicyEgressRule{
@@ -81,7 +83,7 @@ func namespacedClusterIsolationNetworkPolicyDefaultAllowReconciler(clusterName s
 							{
 								PodSelector: &metav1.LabelSelector{
 									MatchLabels: map[string]string{
-										"cluster.x-k8s.io/cluster-name": clusterName,
+										NetworkPolicyPodSelectorLabel: clusterName,
 									},
 								},
 							},
@@ -102,12 +104,15 @@ func namespacedClusterIsolationNetworkPolicyDefaultAllowReconciler(clusterName s
 // namespacedClusterIsolationNetworkPolicyDefaultDenyReconciler creates a network policy that restrict Egress traffic between clusters deployed in the namespaced mode within the same VPC network.
 func namespacedClusterIsolationNetworkPolicyDefaultDenyReconciler(cluster *kubermaticv1.Cluster, nameservers []string) reconciling.NamedNetworkPolicyReconcilerFactory {
 	return func() (string, reconciling.NetworkPolicyReconciler) {
+		// The apiserver address is only populated once the control plane has been initialized. Until then we must
+		// not emit an IPBlock for it, since an empty address would result in an invalid "/32" CIDR being rejected
+		// by the apiserver. The policy gets updated with the apiserver rules once the address becomes available.
 		apiserverAddress := cluster.Status.Address.IP
 		return fmt.Sprintf("cluster-isolation-%s", cluster.Name), func(np *networkingv1.NetworkPolicy) (*networkingv1.NetworkPolicy, error) {
 			np.Spec = networkingv1.NetworkPolicySpec{
 				PodSelector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
-						"cluster.x-k8s.io/cluster-name": cluster.Name,
+						NetworkPolicyPodSelectorLabel: cluster.Name,
 					},
 				},
 				PolicyTypes: []networkingv1.PolicyType{
@@ -121,17 +126,8 @@ func namespacedClusterIsolationNetworkPolicyDefaultDenyReconciler(cluster *kuber
 							{
 								PodSelector: &metav1.LabelSelector{
 									MatchLabels: map[string]string{
-										"cluster.x-k8s.io/cluster-name": cluster.Name,
+										NetworkPolicyPodSelectorLabel: cluster.Name,
 									},
-								},
-							},
-						},
-					},
-					{
-						To: []networkingv1.NetworkPolicyPeer{
-							{
-								IPBlock: &networkingv1.IPBlock{
-									CIDR: fmt.Sprintf("%s/32", apiserverAddress),
 								},
 							},
 						},
@@ -143,26 +139,57 @@ func namespacedClusterIsolationNetworkPolicyDefaultDenyReconciler(cluster *kuber
 							{
 								PodSelector: &metav1.LabelSelector{
 									MatchLabels: map[string]string{
-										"cluster.x-k8s.io/cluster-name": cluster.Name,
+										NetworkPolicyPodSelectorLabel: cluster.Name,
 									},
-								},
-							},
-							{
-								IPBlock: &networkingv1.IPBlock{
-									CIDR: fmt.Sprintf("%s/32", apiserverAddress),
 								},
 							},
 						},
 					},
 				},
 			}
+
+			if apiserverAddress != "" {
+				apiserverCIDR := fmt.Sprintf("%s/32", apiserverAddress)
+				np.Spec.Egress = append(np.Spec.Egress, networkingv1.NetworkPolicyEgressRule{
+					To: []networkingv1.NetworkPolicyPeer{
+						{
+							IPBlock: &networkingv1.IPBlock{
+								CIDR: apiserverCIDR,
+							},
+						},
+					},
+				})
+				np.Spec.Ingress[0].From = append(np.Spec.Ingress[0].From, networkingv1.NetworkPolicyPeer{
+					IPBlock: &networkingv1.IPBlock{
+						CIDR: apiserverCIDR,
+					},
+				})
+			}
+
+			// Only allow DNS traffic to the nameservers, not every port on these hosts.
+			dnsPort := intstr.FromInt(53)
+			tcp := corev1.ProtocolTCP
+			udp := corev1.ProtocolUDP
 			for _, nameserver := range nameservers {
+				if nameserver == "" {
+					continue
+				}
 				np.Spec.Egress = append(np.Spec.Egress, networkingv1.NetworkPolicyEgressRule{
 					To: []networkingv1.NetworkPolicyPeer{
 						{
 							IPBlock: &networkingv1.IPBlock{
 								CIDR: fmt.Sprintf("%s/32", nameserver),
 							},
+						},
+					},
+					Ports: []networkingv1.NetworkPolicyPort{
+						{
+							Protocol: &tcp,
+							Port:     &dnsPort,
+						},
+						{
+							Protocol: &udp,
+							Port:     &dnsPort,
 						},
 					},
 				})

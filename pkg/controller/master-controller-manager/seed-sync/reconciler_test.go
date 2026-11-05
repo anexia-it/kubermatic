@@ -227,9 +227,10 @@ func TestReconcilingSeed(t *testing.T) {
 			ctx := context.Background()
 
 			reconciler := Reconciler{
-				Client:   masterClient,
-				recorder: events.NewFakeRecorder(10),
-				log:      log,
+				Client:          masterClient,
+				masterAPIReader: masterClient,
+				recorder:        events.NewFakeRecorder(10),
+				log:             log,
 				seedClientGetter: func(seed *kubermaticv1.Seed) (ctrlruntimeclient.Client, error) {
 					return seedClient, nil
 				},
@@ -309,9 +310,10 @@ func TestConfigRemainsOnSharedSeedCleanup(t *testing.T) {
 
 	// create the reconciler
 	reconciler := Reconciler{
-		Client:   masterSeedClient,
-		recorder: events.NewFakeRecorder(10),
-		log:      log,
+		Client:          masterSeedClient,
+		masterAPIReader: masterSeedClient,
+		recorder:        events.NewFakeRecorder(10),
+		log:             log,
 		seedClientGetter: func(seed *kubermaticv1.Seed) (ctrlruntimeclient.Client, error) {
 			return masterSeedClient, nil
 		},

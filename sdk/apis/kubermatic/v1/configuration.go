@@ -293,6 +293,8 @@ type KubermaticUserClusterConfiguration struct {
 	OperatingSystemManager OperatingSystemManager `json:"operatingSystemManager,omitempty"`
 	// KubeLB configures the kubeLB component.
 	KubeLB KubeLBConfiguration `json:"kubelb,omitempty"`
+	// Anexia configures components used by Anexia user clusters.
+	Anexia AnexiaUserClusterConfiguration `json:"anexia,omitempty"`
 	// Kyverno configures the Kyverno policy engine settings at the global level.
 	// These settings apply to all user clusters unless overridden at seed or datacenter level.
 	// +optional
@@ -300,6 +302,14 @@ type KubermaticUserClusterConfiguration struct {
 	// AdmissionPlugins configures global admission plugin settings for all user clusters.
 	// +optional
 	AdmissionPlugins *AdmissionPluginsConfiguration `json:"admissionPlugins,omitempty"`
+}
+
+// AnexiaUserClusterConfiguration configures components used by Anexia user clusters.
+type AnexiaUserClusterConfiguration struct {
+	// CCMVersion configures the default Anexia cloud-controller-manager version.
+	// Individual clusters can override this value in their AnexiaCloudSpec.
+	// If empty, the version bundled with KKP is used.
+	CCMVersion string `json:"ccmVersion,omitempty"`
 }
 
 // KubermaticUserClusterMonitoringConfiguration can be used to fine-tune to in-cluster Prometheus.
@@ -338,6 +348,10 @@ type KubeLBConfiguration struct {
 	// KKP is responsible for deploying KubeLB along with it's CRDs, RBAC, etc. The tag here is only for the KubeLB CCM container image.
 	// Thus if you are using official KubeLB image, upgrades to newer minor or major version of KubeLB is not supported and only patch versions should be adjusted.
 	ImageTag string `json:"imageTag,omitempty"`
+	// DisableGatewayAPIProtection disables, for all user clusters, the policy that reserves the Gateway API
+	// CRDs for the kubeLB CCM, and stops KKP from removing the upstream Gateway API safe-upgrades policy.
+	// Datacenters and clusters cannot re-enable it.
+	DisableGatewayAPIProtection bool `json:"disableGatewayAPIProtection,omitempty"`
 }
 
 // AdmissionPluginsConfiguration contains global settings for admission plugins.
@@ -480,9 +494,75 @@ type KubermaticIngressConfiguration struct {
 
 // KubermaticGatewayConfiguration configures the Gateway API integration.
 type KubermaticGatewayConfiguration struct {
+	// ExternalGateway references a user-managed Gateway. When configured,
+	// kubermatic-operator does not create the default Gateway and only points
+	// managed HTTPRoutes at this Gateway. The reference must not resolve to an
+	// operator-managed Gateway. A Gateway with a KubermaticConfiguration controller
+	// ownerReference is considered operator-managed; remove stale ownerReferences
+	// before reusing a former managed Gateway as external. ClassName,
+	// InfrastructureAnnotations, TLS, and spec.ingress.certificateIssuer must
+	// not be set when this field is set.
+	ExternalGateway *KubermaticExternalGatewayReference `json:"externalGateway,omitempty"`
+
 	// ClassName is the GatewayClass to use.
-	// +kubebuilder:default:=kubermatic-envoy-gateway
 	ClassName string `json:"className,omitempty"`
+
+	// InfrastructureAnnotations configures Gateway.spec.infrastructure.annotations on the
+	// operator-managed Gateway so the Gateway implementation can propagate them to the
+	// generated infrastructure resources.
+	InfrastructureAnnotations map[string]string `json:"infrastructureAnnotations,omitempty"`
+
+	// TLS configures TLS for the operator-managed default Gateway.
+	TLS *KubermaticGatewayTLSConfiguration `json:"tls,omitempty"`
+}
+
+// UsesExternalGateway returns true when Gateway API resources should attach to
+// a user-managed Gateway instead of the operator-managed default Gateway.
+// Invalid partial references such as externalGateway without a name are rejected
+// by KubermaticConfiguration validation before this predicate is used.
+func (c *KubermaticGatewayConfiguration) UsesExternalGateway() bool {
+	return c != nil && c.ExternalGateway != nil && c.ExternalGateway.Name != ""
+}
+
+// ExternalGatewayNamespace returns the referenced external Gateway namespace,
+// defaulting to the KKP namespace when no namespace is configured.
+func (c *KubermaticGatewayConfiguration) ExternalGatewayNamespace(defaultNamespace string) string {
+	if c == nil || c.ExternalGateway == nil || c.ExternalGateway.Namespace == "" {
+		return defaultNamespace
+	}
+
+	return c.ExternalGateway.Namespace
+}
+
+// KubermaticExternalGatewayReference references a user-managed Gateway.
+type KubermaticExternalGatewayReference struct {
+	// Name is the name of the Gateway.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern:=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	Name string `json:"name"`
+	// Namespace is the namespace of the Gateway. If unset, the KKP namespace is used.
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern:=`^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
+	Namespace string `json:"namespace,omitempty"`
+}
+
+// KubermaticGatewayTLSConfiguration configures TLS for the operator-managed default Gateway.
+type KubermaticGatewayTLSConfiguration struct {
+	// SecretRef references an existing TLS Secret that should be used by the
+	// default HTTPS listener. When hostname-specific HTTPS listeners are synced
+	// for watched HTTPRoutes, the referenced certificate must cover all served
+	// hostnames, for example via a wildcard or SAN certificate.
+	SecretRef *KubermaticGatewaySecretReference `json:"secretRef,omitempty"`
+}
+
+// KubermaticGatewaySecretReference references a TLS Secret for the operator-managed default Gateway.
+type KubermaticGatewaySecretReference struct {
+	// Name is the name of the TLS Secret.
+	Name string `json:"name,omitempty"`
+	// Namespace is the namespace of the TLS Secret. If unset, the Gateway namespace is used.
+	// Cross-namespace references require a Gateway API ReferenceGrant in the target namespace.
+	Namespace string `json:"namespace,omitempty"`
 }
 
 // KubermaticMasterControllerConfiguration configures the Kubermatic master controller-manager.
