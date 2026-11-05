@@ -59,6 +59,7 @@ func Add(
 ) error {
 	reconciler := &Reconciler{
 		Client:           mgr.GetClient(),
+		masterAPIReader:  mgr.GetAPIReader(),
 		recorder:         mgr.GetEventRecorder(ControllerName),
 		log:              log.Named(ControllerName),
 		seedClientGetter: kubernetesprovider.SeedClientGetterFactory(seedKubeconfigGetter),
