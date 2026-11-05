@@ -3983,10 +3983,8 @@ spec:
                               type: array
                           type: object
                         replicas:
-                          default: 3
                           description: |-
                             Replicas sets the number of pod replicas for the nodeport-proxy-envoy deployment.
-                            Defaults to 3.
                           format: int32
                           minimum: 1
                           type: integer
