@@ -427,9 +427,14 @@ type EnvoyLoadBalancerService struct {
 }
 type NodePortProxyComponentEnvoy struct {
 	NodeportProxyComponent `json:",inline"`
+
+	// No +kubebuilder:default for Replicas: the operator applies the default
+	// (DefaultEnvoyReplicas). A CRD default only gets applied where the "envoy"
+	// object is present, so the master Seed and its copy in the seed cluster can
+	// end up differing, which makes the seed-sync controller send no-op updates forever.
+
 	// Replicas sets the number of pod replicas for the nodeport-proxy-envoy deployment.
 	// Defaults to 3.
-	// +kubebuilder:default:=3
 	// +kubebuilder:validation:Minimum:=1
 	Replicas            *int32                   `json:"replicas,omitempty"`
 	LoadBalancerService EnvoyLoadBalancerService `json:"loadBalancerService,omitempty"`
